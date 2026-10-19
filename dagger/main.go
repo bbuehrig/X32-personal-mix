@@ -13,7 +13,7 @@ import (
 	"dagger/x-32-mix/internal/dagger"
 )
 
-type X32Mix struct{}
+type X32PersonalMix struct{}
 
 type buildTarget struct {
 	GOOS   string
@@ -57,7 +57,7 @@ func goImage(goVersion string) string {
 	return "golang:" + v + "-bookworm"
 }
 
-func (m *X32Mix) base(source *dagger.Directory, goVersion string) *dagger.Container {
+func (m *X32PersonalMix) base(source *dagger.Directory, goVersion string) *dagger.Container {
 	src := source.
 		WithoutDirectory(".git").
 		WithoutDirectory("dist").
@@ -77,7 +77,7 @@ func (m *X32Mix) base(source *dagger.Directory, goVersion string) *dagger.Contai
 }
 
 // Test runs go test ./...
-func (m *X32Mix) Test(
+func (m *X32PersonalMix) Test(
 	ctx context.Context,
 	// Project root (contains go.mod, cmd/, web/, …)
 	// +defaultPath="."
@@ -94,7 +94,7 @@ func (m *X32Mix) Test(
 
 // Build cross-compiles the server for Linux, Windows and macOS
 // (amd64/arm64/386/armv7 where supported). Returns a directory of binaries.
-func (m *X32Mix) Build(
+func (m *X32PersonalMix) Build(
 	// Project root (contains go.mod, cmd/, web/, …)
 	// +defaultPath="."
 	source *dagger.Directory,
@@ -141,7 +141,7 @@ func (m *X32Mix) Build(
 }
 
 // Check runs tests, then builds all release binaries.
-func (m *X32Mix) Check(
+func (m *X32PersonalMix) Check(
 	ctx context.Context,
 	// Project root
 	// +defaultPath="."
@@ -158,7 +158,7 @@ func (m *X32Mix) Check(
 }
 
 // Targets lists the GOOS/GOARCH combinations that Build produces.
-func (m *X32Mix) Targets() string {
+func (m *X32PersonalMix) Targets() string {
 	var b strings.Builder
 	for _, t := range defaultTargets() {
 		line := t.GOOS + "/" + t.GOARCH

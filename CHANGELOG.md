@@ -56,6 +56,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Repository/module renamed: `X32-mix` → `X32-personal-mix`
 - Documentation and UI copy translated to English
 - Startup logs list LAN IP URLs in addition to localhost
+- Fix Dagger module main type (`X32PersonalMix`) to match module name for CI
 
 ### Removed
 
