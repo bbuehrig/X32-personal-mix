@@ -236,16 +236,30 @@
     return Math.min(1, Math.max(0, v));
   }
 
-  function setStripIcon(el, emoji) {
-    const s = String(emoji || "").trim();
-    // Blank / unset: keep layout space, no white-square glyph.
-    if (!s || s === "⬜" || s === "◽" || s === "◻") {
-      el.textContent = "";
+  function setStripIcon(el, iconIdOrSrc) {
+    // Accept numeric X32 index (1–74) or "/icons/N.svg"; blank (1 / empty) keeps layout space.
+    let src = "";
+    if (typeof iconIdOrSrc === "number" && Number.isFinite(iconIdOrSrc)) {
+      const id = Math.trunc(iconIdOrSrc);
+      if (id >= 2 && id <= 74) src = `/icons/${id}.png`;
+    } else {
+      const s = String(iconIdOrSrc || "").trim();
+      if (s.startsWith("/icons/") && /\.(png|svg)$/i.test(s)) src = s;
+    }
+    if (!src) {
+      el.replaceChildren();
       el.classList.add("is-blank");
       return;
     }
     el.classList.remove("is-blank");
-    el.textContent = s;
+    let img = el.querySelector("img");
+    if (!img) {
+      img = document.createElement("img");
+      img.alt = "";
+      img.draggable = false;
+      el.replaceChildren(img);
+    }
+    if (img.getAttribute("src") !== src) img.src = src;
   }
 
   function formatLevel(v) {
@@ -404,7 +418,7 @@
         num.className = "strip-num";
         num.textContent = String(ch.number);
         head.append(icon, num);
-        setStripIcon(icon, ch.iconEmoji);
+        setStripIcon(icon, ch.iconSrc || ch.icon);
 
         const pan = document.createElement("div");
         pan.className = "pan";
@@ -519,7 +533,7 @@
           setPanValue(refs, ch.pan ?? 0.5);
         }
         refs.mute.classList.toggle("muted", !ch.on);
-        setStripIcon(refs.icon, ch.iconEmoji);
+        setStripIcon(refs.icon, ch.iconSrc || ch.icon);
         if (refs.name) refs.name.textContent = ch.name || `Ch ${ch.number}`;
         applyChannelColor(refs, ch.colorCss || "");
       }

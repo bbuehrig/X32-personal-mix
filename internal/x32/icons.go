@@ -1,18 +1,17 @@
 package x32
 
-// IconEmoji returns a display emoji for an X32 icon index (1–74).
-// Index 1 is "blank" on the desk — empty string so the UI shows a transparent slot.
-func IconEmoji(id int) string {
-	if id < 1 || id > len(iconEmojis) {
+import "fmt"
+
+// IconSrc returns the URL path for an X32 channel icon (indices 2–74).
+// Index 1 is "blank" on the desk — empty string so the UI keeps a transparent slot.
+func IconSrc(id int) string {
+	if id < 2 || id > len(iconNames) {
 		return ""
 	}
-	if id == 1 {
-		return "" // blank
-	}
-	return iconEmojis[id-1]
+	return fmt.Sprintf("/icons/%d.png", id)
 }
 
-// IconName returns a short English key for an X32 icon index.
+// IconName returns a short English key for an X32 icon index (1–74).
 func IconName(id int) string {
 	if id < 1 || id > len(iconNames) {
 		return "unknown"
@@ -20,6 +19,7 @@ func IconName(id int) string {
 	return iconNames[id-1]
 }
 
+// Official X32 / M32 icon order (OSC /ch/XX/config/icon, 1…74).
 var iconNames = []string{
 	"blank", "kick-back", "kick-front", "snare-top", "snare-bottom",
 	"tom-high", "tom-medium", "tom", "hihat", "crash",
@@ -36,22 +36,4 @@ var iconNames = []string{
 	"fx", "pc", "wedge", "speaker-right", "speaker-left",
 	"speaker-array", "speaker-stand", "rack", "controls", "faders",
 	"routing-main", "routing-bus", "routing-dispatch", "smiley",
-}
-
-var iconEmojis = []string{
-	"", "🥁", "🥁", "🥁", "🥁",
-	"🥁", "🥁", "🥁", "🎶", "💥",
-	"🥁", "🔔", "🪘", "🪘", "🪇",
-	"🎹", "🎸", "🎸", "🎸", "🎸",
-	"🎸", "🎸", "🎸", "🔊", "🔊",
-	"🔊", "🎹", "🎹", "⌨️", "⌨️",
-	"🎛️", "🎛️", "🎛️", "🎛️", "🎺",
-	"🎺", "🎷", "🎵", "🎻", "🎻",
-	"🎤", "🎤", "👥", "🤘", "🗣️",
-	"🗣️", "🎙️", "🎙️", "🎙️", "🎙️",
-	"📡", "🎙️", "🎧", "🔌", "🔌",
-	"🔌", "🔌", "🔌", "🔌", "📼",
-	"✨", "💻", "📢", "🔈", "🔈",
-	"🔊", "🗼", "🗄️", "🎚️", "🎚️",
-	"🔀", "🔀", "🔀", "😊",
 }

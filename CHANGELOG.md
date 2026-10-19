@@ -7,6 +7,10 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Channel icons use the full X32 BMP artwork as PNGs (`/icons/1.png`–`74.png`) — the partial SVG set had “NO ICON” stubs for bass, guitars, vocals, drum kit, etc.
+
 ### Planned
 
 - Simple browser mixer (faders, mute) over OSC
@@ -58,6 +62,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Startup logs list LAN IP URLs in addition to localhost
 - Fix Dagger module main type (`X32PersonalMix`) to match module name for CI
 - Upgrade Dagger to v0.21.10; CI runs tests on push/PR, cross-build + GitHub Release only on `v*` tags
+- README: example mixer screenshot (`docs/screenshot-mixer.jpg`)
 
 ### Removed
 

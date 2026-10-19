@@ -324,7 +324,7 @@ func (s *Server) handleOSCUpdate(msg osc.Message) {
 				return false
 			}
 			ch.Icon = upd.Icon
-			ch.IconEmoji = x32.IconEmoji(upd.Icon)
+			ch.IconSrc = x32.IconSrc(upd.Icon)
 		case "color":
 			if ch.Color == upd.Color {
 				return false
@@ -471,10 +471,10 @@ func toHubChannels(channels []x32.Channel) []hub.Channel {
 			Level:     c.Level,
 			Pan:       c.Pan,
 			On:        c.On,
-			Icon:      c.Icon,
-			IconEmoji: c.IconEmoji,
-			Color:     c.Color,
-			ColorCSS:  c.ColorCSS,
+			Icon:     c.Icon,
+			IconSrc:  c.IconSrc,
+			Color:    c.Color,
+			ColorCSS: c.ColorCSS,
 		}
 	}
 	return hubCh

@@ -4,6 +4,8 @@ Go web app for personal submix control of a Behringer X32 / Midas M32 over OSC. 
 
 In mix mode: **fullscreen submix mixer** — **each browser has its own session** (its own submix bus).
 
+![X32 Personal Mix — fullscreen submix mixer](docs/screenshot-mixer.jpg)
+
 ## Current status
 
 - Automatic discovery (`/xinfo`) or fixed address via `-mixer`
@@ -20,14 +22,14 @@ In mix mode: **fullscreen submix mixer** — **each browser has its own session*
 ```bash
 go run ./cmd/server
 go run ./cmd/server -mixer 192.168.1.10
-go run ./cmd/server -domain mixer.tcy -mixer 192.168.1.10
-MIXER=192.168.1.10:10023 DOMAIN=mixer.tcy go run ./cmd/server
+go run ./cmd/server -domain mixer.myband.com -mixer 192.168.1.10
+MIXER=192.168.1.10:10023 DOMAIN=mixer.myband.com go run ./cmd/server
 ```
 
 Default: **HTTPS** on `:8443` (self-signed cert in `.x32-personal-mix-tls/`), HTTP `:8080` redirects there.
 
 - `https://localhost:8443` or `https://<LAN-IP>:8443`
-- with `-domain mixer.tcy`: cert includes that DNS name → `https://mixer.tcy:8443` (DNS/hosts must point at the server)
+- with `-domain mixer.myband.com`: cert includes that DNS name → `https://mixer.myband.com:8443` (DNS/hosts must point at the server)
 - `http://…:8080` → redirect to HTTPS
 
 ```bash
@@ -111,7 +113,7 @@ Phases (per session view): `idle` → `searching` → `connected` → `mixing` (
 - `/xinfo`, `/xremote`
 - `/meters` → `/meters/0` (channel level blob)
 - `/bus/XX/config/name`
-- `/ch/XX/config/name|icon|color`
+- `/ch/XX/config/name|icon|color` (icon 1–74 → `/icons/{n}.png`)
 - `/ch/XX/mix/BB/level|on|pan`
 
 ## Flags
@@ -120,7 +122,7 @@ Phases (per session view): `idle` → `searching` → `connected` → `mixing` (
 |------------|---------|
 | `-https` / `HTTPS` | HTTPS listen (default `:8443`, `off` = HTTP only) |
 | `-http` / `ADDR` | HTTP listen, redirect → HTTPS (default `:8080`) |
-| `-domain` / `DOMAIN` | Hostname in the certificate (e.g. `mixer.tcy`) — optional |
+| `-domain` / `DOMAIN` | Hostname in the certificate (e.g. `mixer.myband.com`) — optional |
 | `-tls-dir` / `TLS_DIR` | Certificate directory (default `.x32-personal-mix-tls`) |
 | `-mixer` / `MIXER` | `host` or `host:port` — skip discovery |
 
@@ -128,7 +130,7 @@ Phases (per session view): `idle` → `searching` → `connected` → `mixing` (
 
 `-domain` adds the name as a DNS SAN on the **self-signed** certificate (the server still listens on all interfaces; DNS or hosts must resolve the name to the LAN IP). If the existing cert lacks the name, it is regenerated.
 
-**Let's Encrypt** cannot issue a phone-trusted cert for pure LAN names like `mixer.tcy`: it needs a publicly resolvable domain and an ACME challenge (HTTP from the internet or DNS-01). Without that, the cert stays self-signed — accept once, or trust a local CA on the device (e.g. [mkcert](https://github.com/FiloSottile/mkcert)).
+**Let's Encrypt** cannot issue a phone-trusted cert for pure LAN names like `mixer.myband.com`: it needs a publicly resolvable domain and an ACME challenge (HTTP from the internet or DNS-01). Without that, the cert stays self-signed — accept once, or trust a local CA on the device (e.g. [mkcert](https://github.com/FiloSottile/mkcert)).
 
 ## PWA / home screen / stay awake
 
@@ -145,7 +147,7 @@ Fallback: Settings → Display & Brightness → **Auto-Lock → Never**.
 ## Notes
 
 - One X32, many independent submix sessions
-- Icons as emoji approximations (1–74)
+- Channel icons: full X32 set (indices 1–74) from [behringer-icons](https://github.com/mamarguerat/behringer-icons) BMPs (GPL-3), served as `/icons/{n}.png`
 - No authentication (LAN)
 
 ## Changelog

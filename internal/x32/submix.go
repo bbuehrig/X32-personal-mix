@@ -17,10 +17,10 @@ type Channel struct {
 	Level     float32 `json:"level"` // 0.0 … 1.0
 	Pan       float32 `json:"pan"`   // 0.0 = L … 0.5 = C … 1.0 = R
 	On        bool    `json:"on"`
-	Icon      int     `json:"icon"`
-	IconEmoji string  `json:"iconEmoji"`
-	Color     int     `json:"color"`
-	ColorCSS  string  `json:"colorCss"`
+	Icon     int    `json:"icon"`
+	IconSrc  string `json:"iconSrc"`
+	Color    int    `json:"color"`
+	ColorCSS string `json:"colorCss"`
 }
 
 // FetchSubmix loads channel names, icons and send level/mute/pan for the bus.
@@ -82,10 +82,10 @@ func FetchSubmix(client *osc.Client, ip string, port, bus int, perQuery time.Dur
 			Level:     floatArg(levelMsg, 0),
 			Pan:       floatArg(panMsg, 0),
 			On:        boolArg(onMsg, 0),
-			Icon:      icon,
-			IconEmoji: IconEmoji(icon),
-			Color:     color,
-			ColorCSS:  ColorCSS(color),
+			Icon:     icon,
+			IconSrc:  IconSrc(icon),
+			Color:    color,
+			ColorCSS: ColorCSS(color),
 		})
 	}
 	return out, nil
@@ -195,9 +195,15 @@ func intArg(msg osc.Message, i int) int {
 		return 0
 	}
 	switch v := msg.Arguments[i].(type) {
+	case int:
+		return v
 	case int32:
 		return int(v)
+	case int64:
+		return int(v)
 	case float32:
+		return int(v)
+	case float64:
 		return int(v)
 	default:
 		return 0

@@ -22,10 +22,10 @@ type Channel struct {
 	Level     float32 `json:"level"`
 	Pan       float32 `json:"pan"`
 	On        bool    `json:"on"`
-	Icon      int     `json:"icon"`
-	IconEmoji string  `json:"iconEmoji"`
-	Color     int     `json:"color"`
-	ColorCSS  string  `json:"colorCss"`
+	Icon     int    `json:"icon"`
+	IconSrc  string `json:"iconSrc"`
+	Color    int    `json:"color"`
+	ColorCSS string `json:"colorCss"`
 }
 
 // Status is the per-client view pushed over WebSocket.

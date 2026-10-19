@@ -347,15 +347,27 @@ html, body {
 }
 
 .strip-icon {
-  font-size: 1.45rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 1.6rem;
   min-height: 1.6rem;
+  width: 100%;
+}
+
+.strip-icon img {
+  width: 1.45rem;
+  height: 1.45rem;
+  display: block;
+  /* Desk SVGs are black strokes; invert for the dark strip chrome */
+  filter: invert(1);
+  opacity: 0.92;
+  pointer-events: none;
+  user-select: none;
 }
 
 .strip-icon.is-blank {
-  visibility: hidden; /* keep layout space, no white square */
-  color: transparent;
+  visibility: hidden; /* keep layout space */
 }
 
 .strip-num {
