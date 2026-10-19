@@ -92,6 +92,15 @@ func (m *X32PersonalMix) Test(
 		Stdout(ctx)
 }
 
+func normalizeAppVersion(v string) string {
+	v = strings.TrimSpace(v)
+	v = strings.TrimPrefix(v, "v")
+	if v == "" {
+		return "dev"
+	}
+	return v
+}
+
 // Build cross-compiles the server for Linux, Windows and macOS
 // (amd64/arm64/386/armv7 where supported). Returns a directory of binaries.
 func (m *X32PersonalMix) Build(
@@ -102,7 +111,12 @@ func (m *X32PersonalMix) Build(
 	// +optional
 	// +default="1.26"
 	goVersion string,
+	// App semver (no required "v" prefix). Empty → "dev".
+	// +optional
+	version string,
 ) *dagger.Directory {
+	appVer := normalizeAppVersion(version)
+	ldflags := fmt.Sprintf("-s -w -X X32-personal-mix/internal/version.Version=%s", appVer)
 	golang := m.base(source, goVersion)
 	outputs := dag.Directory()
 
@@ -121,7 +135,7 @@ func (m *X32PersonalMix) Build(
 		built := ctr.WithExec([]string{
 			"go", "build",
 			"-trimpath",
-			"-ldflags", "-s -w",
+			"-ldflags", ldflags,
 			"-o", outPath,
 			"./cmd/server",
 		})
@@ -131,6 +145,7 @@ func (m *X32PersonalMix) Build(
 
 	// Small text index of what was built (handy in CI artifacts).
 	index := "X32 Personal Mix — release binaries\n"
+	index += fmt.Sprintf("version %s\n", appVer)
 	index += fmt.Sprintf("built with Go %s (host %s/%s)\n\n", goVersion, runtime.GOOS, runtime.GOARCH)
 	for _, t := range defaultTargets() {
 		index += t.binaryName() + "\n"
@@ -150,11 +165,14 @@ func (m *X32PersonalMix) Check(
 	// +optional
 	// +default="1.26"
 	goVersion string,
+	// App semver (no required "v" prefix). Empty → "dev".
+	// +optional
+	version string,
 ) (*dagger.Directory, error) {
 	if _, err := m.Test(ctx, source, goVersion); err != nil {
 		return nil, err
 	}
-	return m.Build(source, goVersion), nil
+	return m.Build(source, goVersion, version), nil
 }
 
 // Targets lists the GOOS/GOARCH combinations that Build produces.

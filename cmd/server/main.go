@@ -19,6 +19,7 @@ import (
 	"X32-personal-mix/internal/hub"
 	"X32-personal-mix/internal/osc"
 	"X32-personal-mix/internal/tlscert"
+	"X32-personal-mix/internal/version"
 	"X32-personal-mix/web"
 )
 
@@ -28,7 +29,13 @@ func main() {
 	httpFlag := flag.String("http", ":8080", "HTTP listen address – always redirects to HTTPS (default :8080)")
 	tlsDirFlag := flag.String("tls-dir", "", "Directory for self-signed certificate (default: .x32-personal-mix-tls)")
 	domainFlag := flag.String("domain", "", "Hostname for certificate/URL (e.g. mixer.tcy) – optional")
+	showVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version.Version)
+		os.Exit(0)
+	}
 
 	httpsAddr := strings.TrimSpace(*httpsFlag)
 	if v := strings.TrimSpace(os.Getenv("HTTPS")); v != "" {
@@ -100,7 +107,7 @@ func main() {
 			ReadHeaderTimeout: 5 * time.Second,
 		}
 		httpPort := portFromAddr(httpAddr)
-		log.Print("X32 Personal Mix HTTP (HTTPS off)")
+		log.Printf("X32 Personal Mix %s HTTP (HTTPS off)", version.Version)
 		logListenURLs("http", httpPort, domain, lanIPs)
 		if fixed != nil {
 			log.Printf("Mixer %s:%d", fixed.IP, fixed.Port)
@@ -131,7 +138,7 @@ func main() {
 		}
 		httpsPort := portFromAddr(httpsAddr)
 		go func() {
-			log.Print("X32 Personal Mix HTTPS")
+			log.Printf("X32 Personal Mix %s HTTPS", version.Version)
 			logListenURLs("https", httpsPort, domain, lanIPs)
 			if fixed != nil {
 				log.Printf("Mixer %s:%d", fixed.IP, fixed.Port)

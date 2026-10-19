@@ -45,11 +45,12 @@ jobs:
         uses: dagger/dagger-for-github@v8.4.1
         with:
           version: ${{ env.DAGGER_VERSION }}
-          call: check export --path=./dist
+          call: check --version=${{ github.ref_name }} export --path=./dist
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name }}
           files: dist/*
           generate_release_notes: true
           fail_on_unmatched_files: true

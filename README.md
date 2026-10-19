@@ -64,7 +64,8 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), Dagger **v0.21.10**)
 - **Version tag** (`v*`, e.g. `v1.0.0`): runs tests + cross-build and publishes a GitHub Release with the binaries
 
 ```bash
-git tag v0.2.0
+# After bumping VERSION + CHANGELOG (see CHANGELOG.md)
+git tag -a v0.2.0 -m "v0.2.0"
 git push origin v0.2.0
 ```
 

@@ -2,6 +2,7 @@
   "id": "/",
   "name": "X32 Personal Mix",
   "short_name": "X32 Personal Mix",
+  "version": "0.2.0",
   "description": "Personal submix for Behringer X32 / Midas M32",
   "start_url": "/?source=pwa",
   "scope": "/",

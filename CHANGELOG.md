@@ -7,81 +7,46 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-
-- Channel icons use the full X32 BMP artwork as PNGs (`/icons/1.png`–`74.png`) — the partial SVG set had “NO ICON” stubs for bass, guitars, vocals, drum kit, etc.
-
-### Planned
-
-- Simple browser mixer (faders, mute) over OSC
-- `/xremote` for live updates from the mixer to all clients
+## [0.2.0] - 2026-10-19
 
 ### Added
 
-- After connect: read all 16 bus names via `/bus/XX/config/name`
-- UI list of the 8 stereo buses (odd numbers 1–15)
-- Bus selection for a shared submix; X32 device info hidden afterward
-- Submix mixer for 32 channels (send level + on/mute) onto the selected bus
-- API: `POST /api/select-bus`, `/api/clear-bus`, `/api/level`, `/api/mute`
-- Live sync via `/xremote` (fader/pan/mute/name/icon from desk and other clients)
-- Pan control per channel (`POST /api/pan`)
-- Channel icons (X32 icon index as emoji)
-- Fullscreen mixer without a connect dialog on top
-- Flag `-mixer` / env `MIXER` for a fixed mixer address (skips discovery)
+- Submix mixer for 32 channels (send level, mute, pan) onto a selected stereo bus
+- Bus list from the desk (`/bus/XX/config/name`); 8 stereo buses (odd 1–15); re-read on every pick
+- Live sync via `/xremote` (fader/pan/mute/name/icon/color) and channel meters (`/meters/0`)
+- Independent browser sessions (`X-Session-ID` / `sid`); each client picks its own submix bus
+- Last mix per session restored from `localStorage` on reopen
+- Channel colors (`/ch/XX/config/color`) as strip background; fader height adapts to the screen
+- Channel icons: full X32 set as PNGs (`/icons/1.png`–`74.png`, from behringer-icons BMPs)
+- Flag `-mixer` / `MIXER` for a fixed mixer address (skips discovery)
+- Optional `-domain` / `DOMAIN` on the self-signed certificate; `-https` / `-http` / `-tls-dir`
+- HTTPS by default (`:8443`); HTTP redirects to HTTPS
+- PWA: fullscreen, service worker, install icons (X + fader), iOS/Android install help
+- Screen Wake Lock + keep-awake fallback; “Awake on/off” in the mixer bar
+- Dagger cross-build (Linux/Windows/macOS, amd64/arm64/386/armv7) and GitHub Actions CI
+- CI: tests on push/PR; cross-build + GitHub Release on `v*` tags (Dagger v0.21.10)
+- README mixer screenshot (`docs/screenshot-mixer.jpg`); startup logs list LAN IP URLs
+- App / module name **X32 Personal Mix** (`X32-personal-mix`)
 
 ### Changed
 
-- Mixer UI in Mixing Station / DAW style: narrow channel strips, rectangular fader caps with scale marks, pan/mute on top, channel color only in the scribble strip
-
-### Added
-
-- Fader design inspired by [CSS Audio Fader](https://codepen.io/verybradthings/pen/ZeNEpO): metal cap, LED readout, VCA meter with dB markers; mute **M** only (no solo)
-- Channel color as background of the whole fader column (not only scribble strip)
-- Live channel levels from the X32 (`/meters/0`) in the meter track beside each fader
-- Bus names are re-read from the X32 when opening the bus picker
-- App icons / favicon including Apple Touch Icon and web manifest (home screen)
-- PWA fullscreen (`display: fullscreen`), service worker, Screen Wake Lock + keep-awake fallback for long-running use
-- HTTPS on by default (`:8443`, self-signed in `.x32-personal-mix-tls/`); HTTP always redirects to HTTPS
-- “Awake on/off” button in the mixer bar
-- PWA install help per iOS / Android (hint + “?” dialog)
-- App renamed to **X32 Personal Mix**
-- Optional `-domain` / `DOMAIN` (e.g. `mixer.tcy`): DNS name on the self-signed certificate; regenerate when the name is missing
-- PWA icon: large **X** plus fader strip with LED meter
-
-### Changed
-
-- Faders only move when grabbing the knob (no jump when tapping the track)
-- Fader/pan OSC more often (~50 Hz + flush on release) for smoother desk motion
-- Channel icon when “blank”: layout space kept, content transparent instead of a white square
-- Pan: tap/click opens a full-width pan control; drag to set, release (or tap outside) closes
-- Live dot: green only with an open WebSocket; red when the server is gone
-- Mixer: side gutter on `.mixer-view` (JS, phone landscape min. 56px) — padding on scrollable `.mixer` is ignored by WebKit
-- Dagger pipeline: cross-build Linux/Windows/macOS (amd64/arm64/386/armv7) + GitHub Actions CI
-- Repository/module renamed: `X32-mix` → `X32-personal-mix`
-- Documentation and UI copy translated to English
-- Startup logs list LAN IP URLs in addition to localhost
-- Fix Dagger module main type (`X32PersonalMix`) to match module name for CI
-- Upgrade Dagger to v0.21.10; CI runs tests on push/PR, cross-build + GitHub Release only on `v*` tags
-- README: example mixer screenshot (`docs/screenshot-mixer.jpg`)
-
-### Removed
-
-- Studio One layout and layout switcher (console layout only)
-
-### Added
-
-- Channel color (`/ch/XX/config/color`) for the scribble strip (`colorCss`)
-- Fader height adapts to available screen height
-- Independent browser sessions (`X-Session-ID` / `sid`): each client picks its own submix bus
-- Last mix per session is stored and reopened on reconnect
+- Fullscreen console UI (CodePen-style metal faders, LED, meters, mute **M**); no connect dialog overlay
+- Faders move only when grabbing the knob; OSC for fader/pan ~50 Hz with flush on release
+- Pan: tap opens a full-width control; drag to set, release or tap outside closes
+- Live dot: green with open WebSocket, red when the server is gone
+- Phone landscape: side gutters on `.mixer-view` (WebKit ignores padding on the scrollable mixer)
+- Documentation and UI copy in English
 
 ### Fixed
 
-- Live fader updates: OSC replies no longer block `/xremote`; drag tracking instead of `activeElement` (especially channel 1 / last touched fader)
-- Stereo bus: also accept updates from the linked even bus
+- Live fader updates: OSC replies no longer block `/xremote`; drag tracking instead of `activeElement`
+- Stereo bus: accept updates from the linked even bus
+- Blank channel icon keeps layout space without a white square
+- Dagger module main type (`X32PersonalMix`) matches the module name for CI
 
 ### Removed
 
+- Studio One layout and layout switcher
 - Debug mode (`-debug` / `DEBUG`) and manual IP entry in the UI
 - `POST /api/connect`
 
@@ -97,3 +62,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - WebSocket hub for shared status to multiple clients
 - REST: `GET /api/status`, `POST /api/discover`
 - Configurable listen address via `ADDR`
+
+[Unreleased]: https://github.com/bbuehrig/X32-personal-mix/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/bbuehrig/X32-personal-mix/releases/tag/v0.2.0
+[0.1.0]: https://github.com/bbuehrig/X32-personal-mix/tree/6975fed
