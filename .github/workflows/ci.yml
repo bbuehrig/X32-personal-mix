@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DAGGER_VERSION: "0.13.4"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Test & cross-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test + build all platforms (Dagger)
+        uses: dagger/dagger-for-github@v6
+        with:
+          version: ${{ env.DAGGER_VERSION }}
+          verb: call
+          args: check export --path=./dist
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: x32-personal-mix-binaries
+          path: dist/
+          if-no-files-found: error

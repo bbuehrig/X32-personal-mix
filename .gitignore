@@ -1,0 +1,34 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# Go / tests
+*.exe
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Local / Dagger build outputs
+/bin/
+/tmp/
+/dist/
+dist/
+
+# Local binary names (go build -o …)
+/x32-personal-mix
+/x32-personal-mix_*
+x32-personal-mix
+x32-personal-mix_*
+/x32-mix
+/x32-mix_*
+x32-mix
+x32-mix_*
+
+# Runtime (self-signed TLS)
+.x32-personal-mix-tls/
+**/.x32-personal-mix-tls/
+.x32-mix-tls/
+**/.x32-mix-tls/

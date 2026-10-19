@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="X32 Personal Mix">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#262626"/>
+      <stop offset="100%" stop-color="#121212"/>
+    </linearGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f4f5f7"/>
+      <stop offset="42%" stop-color="#c8ccd2"/>
+      <stop offset="58%" stop-color="#8e939c"/>
+      <stop offset="100%" stop-color="#dce0e6"/>
+    </linearGradient>
+    <linearGradient id="meter" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#429321"/>
+      <stop offset="55%" stop-color="#bade09"/>
+      <stop offset="82%" stop-color="#ec9500"/>
+      <stop offset="100%" stop-color="#f40000"/>
+    </linearGradient>
+    <linearGradient id="xfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#b0b0b0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Bold X (left) -->
+  <path
+    fill="url(#xfill)"
+    d="M72 96 L148 96 L208 196 L268 96 L344 96 L244 256 L344 416 L268 416 L208 316 L148 416 L72 416 L172 256 Z"/>
+
+  <!-- Fader strip (right, prominent) -->
+  <rect x="318" y="72" width="140" height="368" rx="22" fill="#0a0a0a"/>
+  <rect x="330" y="84" width="116" height="344" rx="16" fill="#1a1a1a"/>
+
+  <!-- Track -->
+  <rect x="372" y="108" width="28" height="296" rx="8" fill="#050505"/>
+  <rect x="380" y="116" width="12" height="280" rx="4" fill="#333"/>
+
+  <!-- Metal fader cap -->
+  <rect x="348" y="220" width="76" height="100" rx="12" fill="url(#cap)"/>
+  <rect x="360" y="254" width="52" height="7" rx="2" fill="#2e2e2e"/>
+  <rect x="360" y="268" width="52" height="7" rx="2" fill="#2e2e2e"/>
+  <rect x="360" y="282" width="52" height="7" rx="2" fill="#2e2e2e"/>
+
+  <!-- LED meter -->
+  <rect x="418" y="120" width="18" height="272" rx="4" fill="#0d0d0d"/>
+  <rect x="421" y="168" width="12" height="216" rx="2" fill="url(#meter)"/>
+</svg>

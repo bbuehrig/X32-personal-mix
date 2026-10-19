@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="X32 Personal Mix" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="X32 Personal Mix" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="color-scheme" content="dark" />
+  <title>X32 Personal Mix</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <video id="wake-video" playsinline webkit-playsinline muted loop
+    style="position:fixed;width:1px;height:1px;opacity:0.01;pointer-events:none;bottom:0;left:0;z-index:-1"
+    aria-hidden="true"></video>
+
+  <div id="boot" class="overlay">
+    <div class="spinner"></div>
+    <p id="boot-msg">Connecting…</p>
+    <button type="button" id="rediscover" class="btn btn-ghost" hidden>Search again</button>
+    <button type="button" id="stay-awake-boot" class="btn btn-ghost stay-awake-btn" hidden>Keep screen awake</button>
+  </div>
+
+  <div id="bus-pick" class="overlay" hidden>
+    <div class="overlay-head">
+      <p class="overlay-title">Submix bus</p>
+      <button type="button" id="help-open-bus" class="btn btn-ghost help-btn" title="Help">?</button>
+    </div>
+    <div id="install-hint" class="install-hint" hidden></div>
+    <ul id="buses" class="bus-list"></ul>
+  </div>
+
+  <div id="mixer-view" class="mixer-view" hidden>
+    <header class="mixer-bar">
+      <button type="button" id="change-bus" class="btn btn-ghost">Bus</button>
+      <h1 id="bus-title">Submix</h1>
+      <div class="mixer-bar-right">
+        <button type="button" id="help-open" class="btn btn-ghost help-btn" title="Help">?</button>
+        <button type="button" id="stay-awake" class="btn btn-ghost stay-awake-btn" title="Keep screen awake" aria-pressed="false">Awake</button>
+        <span id="live-dot" class="live-dot is-offline" title="Offline" aria-label="Offline"></span>
+      </div>
+    </header>
+    <div id="mixer" class="mixer" role="group" aria-label="Submix faders"></div>
+  </div>
+
+  <div id="help-sheet" class="help-sheet" hidden>
+    <div class="help-card" role="dialog" aria-labelledby="help-title" aria-modal="true">
+      <header class="help-card-head">
+        <h2 id="help-title">Install app</h2>
+        <button type="button" id="help-close" class="btn btn-ghost help-btn" aria-label="Close">✕</button>
+      </header>
+      <div id="help-body" class="help-body"></div>
+      <button type="button" id="help-dismiss" class="btn">Got it</button>
+    </div>
+  </div>
+
+  <div id="pan-overlay" class="pan-overlay" hidden>
+    <div class="pan-overlay-card" role="dialog" aria-labelledby="pan-overlay-name" aria-modal="true">
+      <div class="pan-overlay-meta">
+        <span id="pan-overlay-name">Pan</span>
+        <span id="pan-overlay-value">C</span>
+      </div>
+      <div id="pan-overlay-bar" class="pan pan-overlay-bar" role="slider" aria-label="Pan" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100">
+        <div class="pan-center" aria-hidden="true"></div>
+        <div class="pan-thumb" aria-hidden="true"></div>
+        <div class="pan-overlay-marks" aria-hidden="true">
+          <span>L</span><span>C</span><span>R</span>
+        </div>
+      </div>
+      <p class="pan-overlay-hint">Drag to set · release to close</p>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

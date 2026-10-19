@@ -1,0 +1,6 @@
+{
+  "name": "x32-personal-mix",
+  "sdk": "go",
+  "source": "dagger",
+  "engineVersion": "v0.13.4"
+}
