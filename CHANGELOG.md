@@ -57,6 +57,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Documentation and UI copy translated to English
 - Startup logs list LAN IP URLs in addition to localhost
 - Fix Dagger module main type (`X32PersonalMix`) to match module name for CI
+- Upgrade Dagger to v0.21.10; CI runs tests on push/PR, cross-build + GitHub Release only on `v*` tags
 
 ### Removed
 

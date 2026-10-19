@@ -56,7 +56,15 @@ dagger call check export --path=./dist
 dagger call build export --path=./dist
 ```
 
-CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same pipeline via Dagger and uploads `dist/` as an artifact.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), Dagger **v0.21.10**):
+
+- **Push / PR** (no version tag): runs tests only (`dagger call test`)
+- **Version tag** (`v*`, e.g. `v1.0.0`): runs tests + cross-build and publishes a GitHub Release with the binaries
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
 
 ## Architecture
 
