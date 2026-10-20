@@ -17,31 +17,43 @@ type Bus struct {
 
 // Channel is a submix send strip.
 type Channel struct {
-	Number    int     `json:"number"`
-	Name      string  `json:"name"`
-	Level     float32 `json:"level"`
-	Pan       float32 `json:"pan"`
-	On        bool    `json:"on"`
-	Icon     int    `json:"icon"`
-	IconSrc  string `json:"iconSrc"`
-	Color    int    `json:"color"`
-	ColorCSS string `json:"colorCss"`
+	Number   int     `json:"number"`
+	Name     string  `json:"name"`
+	Level    float32 `json:"level"`
+	Pan      float32 `json:"pan"`
+	On       bool    `json:"on"`
+	Icon     int     `json:"icon"`
+	IconSrc  string  `json:"iconSrc"`
+	Color    int     `json:"color"`
+	ColorCSS string  `json:"colorCss"`
+}
+
+// BusMaster is the mix-bus output strip for the selected submix.
+type BusMaster struct {
+	Number   int     `json:"number"`
+	Name     string  `json:"name"`
+	Level    float32 `json:"level"`
+	Pan      float32 `json:"pan"`
+	On       bool    `json:"on"`
+	Color    int     `json:"color"`
+	ColorCSS string  `json:"colorCss"`
 }
 
 // Status is the per-client view pushed over WebSocket.
 type Status struct {
-	SessionID       string    `json:"sessionId,omitempty"`
-	Phase           string    `json:"phase"` // idle | searching | connected | mixing | error
-	Message         string    `json:"message,omitempty"`
-	IP              string    `json:"ip,omitempty"`
-	Port            int       `json:"port,omitempty"`
-	Name            string    `json:"name,omitempty"`
-	Model           string    `json:"model,omitempty"`
-	Firmware        string    `json:"firmware,omitempty"`
-	Buses           []Bus     `json:"buses,omitempty"`
-	SelectedBus     int       `json:"selectedBus,omitempty"`
-	SelectedBusName string    `json:"selectedBusName,omitempty"`
-	Channels        []Channel `json:"channels,omitempty"`
+	SessionID       string     `json:"sessionId,omitempty"`
+	Phase           string     `json:"phase"` // idle | searching | connected | mixing | error
+	Message         string     `json:"message,omitempty"`
+	IP              string     `json:"ip,omitempty"`
+	Port            int        `json:"port,omitempty"`
+	Name            string     `json:"name,omitempty"`
+	Model           string     `json:"model,omitempty"`
+	Firmware        string     `json:"firmware,omitempty"`
+	Buses           []Bus      `json:"buses,omitempty"`
+	SelectedBus     int        `json:"selectedBus,omitempty"`
+	SelectedBusName string     `json:"selectedBusName,omitempty"`
+	Channels        []Channel  `json:"channels,omitempty"`
+	BusMaster       *BusMaster `json:"busMaster,omitempty"`
 }
 
 type envelope struct {
@@ -78,6 +90,7 @@ type session struct {
 	selectedBusName string
 	preferredBus    int // last chosen mix; survives clear / reconnect
 	channels        []Channel
+	busMaster       *BusMaster
 	conn            *websocket.Conn
 }
 
@@ -225,7 +238,8 @@ func (h *Hub) SetBuses(buses []Bus) {
 }
 
 // SetSessionView updates one session's bus/mixer view.
-func (h *Hub) SetSessionView(id, phase, message string, bus int, busName string, channels []Channel) {
+// Pass master non-nil when entering mixing; nil clears the bus master.
+func (h *Hub) SetSessionView(id, phase, message string, bus int, busName string, channels []Channel, master *BusMaster) {
 	h.mu.Lock()
 	sess := h.sessions[id]
 	if sess == nil {
@@ -243,6 +257,12 @@ func (h *Hub) SetSessionView(id, phase, message string, bus int, busName string,
 		sess.channels = append([]Channel(nil), channels...)
 	} else {
 		sess.channels = nil
+	}
+	if master != nil {
+		cp := *master
+		sess.busMaster = &cp
+	} else {
+		sess.busMaster = nil
 	}
 	view := h.viewLocked(sess)
 	h.mu.Unlock()
@@ -269,6 +289,7 @@ func (h *Hub) ClearSessionBus(id string) bool {
 	sess.selectedBus = 0
 	sess.selectedBusName = ""
 	sess.channels = nil
+	sess.busMaster = nil
 	view := h.viewLocked(sess)
 	h.mu.Unlock()
 	h.push(id, view)
@@ -399,6 +420,31 @@ func (h *Hub) ApplyOSCUpdate(bus, channel int, kind string, apply func(*Channel)
 	}
 }
 
+// ApplyBusMasterUpdate applies a live bus-master change to sessions on that bus.
+func (h *Hub) ApplyBusMasterUpdate(bus int, apply func(*BusMaster) bool) {
+	type push struct {
+		id     string
+		status Status
+	}
+	var out []push
+	h.mu.Lock()
+	for _, sess := range h.sessions {
+		if sess.phase != "mixing" || sess.busMaster == nil {
+			continue
+		}
+		if bus != sess.selectedBus && bus != sess.selectedBus+1 {
+			continue
+		}
+		if apply(sess.busMaster) {
+			out = append(out, push{id: sess.id, status: h.viewLocked(sess)})
+		}
+	}
+	h.mu.Unlock()
+	for _, p := range out {
+		h.push(p.id, p.status)
+	}
+}
+
 // BusName looks up a stereo bus name from the global list.
 func (h *Hub) BusName(bus int) (string, bool) {
 	h.mu.RLock()
@@ -456,6 +502,10 @@ func (h *Hub) viewLocked(sess *session) Status {
 			st.SelectedBus = sess.selectedBus
 			st.SelectedBusName = sess.selectedBusName
 			st.Channels = append([]Channel(nil), sess.channels...)
+			if sess.busMaster != nil {
+				cp := *sess.busMaster
+				st.BusMaster = &cp
+			}
 		} else {
 			st.Phase = "connected"
 			st.Message = sess.message

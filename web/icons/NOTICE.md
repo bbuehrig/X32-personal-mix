@@ -6,4 +6,5 @@ PNG icons `1.png`–`74.png` are derived from the BMP set in
 
 Licensed under the GNU GPL v3 (see `LICENSE` in this directory).
 
-Converted to transparent PNG for the web UI (light desk artwork on black → black ink on transparent).
+Converted to transparent PNG for the web UI (light desk artwork on black →
+**white** ink on transparent, so the UI needs no CSS `filter: invert`).

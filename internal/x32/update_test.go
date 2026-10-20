@@ -35,3 +35,29 @@ func TestParseSubmixUpdateUnpadded(t *testing.T) {
 		t.Fatalf("unexpected: %+v ok=%v", upd, ok)
 	}
 }
+
+func TestParseSubmixUpdateBusMaster(t *testing.T) {
+	upd, ok := ParseSubmixUpdate(osc.Message{
+		Address:   "/bus/05/mix/fader",
+		Arguments: []any{float32(0.75)},
+	})
+	if !ok || upd.Channel != 0 || upd.Bus != 5 || upd.Kind != "level" || upd.Level != 0.75 {
+		t.Fatalf("bus fader: %+v ok=%v", upd, ok)
+	}
+	upd, ok = ParseSubmixUpdate(osc.Message{
+		Address:   "/bus/05/mix/on",
+		Arguments: []any{int32(0)},
+	})
+	if !ok || upd.Channel != 0 || upd.Bus != 5 || upd.Kind != "on" || upd.On {
+		t.Fatalf("bus on: %+v ok=%v", upd, ok)
+	}
+}
+
+func TestBusMeterIndex(t *testing.T) {
+	if got := BusMeterIndex(1); got != 48 {
+		t.Fatalf("bus 1: %d", got)
+	}
+	if got := BusMeterIndex(16); got != 63 {
+		t.Fatalf("bus 16: %d", got)
+	}
+}

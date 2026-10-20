@@ -7,6 +7,23 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-20
+
+### Added
+
+- Sticky **bus master** strip (toggle **Master on/off**): fader, pan, mute, and meter for the selected mix bus; channels scroll beside it
+- Mixer bar **VU on/off**: optional slow meter ballistics (persisted in `localStorage`)
+- Per-channel peak-hold tick on meters (~1.2 s hold, then falls to the live level)
+- API: `POST /api/bus-level`, `/api/bus-pan`, `/api/bus-mute`; live `/bus/XX/mix/*` via `/xremote`
+
+### Changed
+
+- Fader scale matches Mixing Station / X32 (+10 … −60, pseudo-log positions); LED readout shows dB
+- Channel meters use a dBFS bar (−60…0) with a colour gradient fixed to the track (yellow near 0, deep red at +10)
+- Meters update ~50 ms with rAF smoothing (fast attack)
+- Channel icons are white PNGs (no CSS invert — sharper on iOS)
+- iPhone portrait: sharper mixer-bar text; button bar sits lower under the notch
+
 ## [0.2.0] - 2026-10-19
 
 ### Added
@@ -63,6 +80,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - REST: `GET /api/status`, `POST /api/discover`
 - Configurable listen address via `ADDR`
 
-[Unreleased]: https://github.com/bbuehrig/X32-personal-mix/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bbuehrig/X32-personal-mix/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bbuehrig/X32-personal-mix/releases/tag/v0.3.0
 [0.2.0]: https://github.com/bbuehrig/X32-personal-mix/releases/tag/v0.2.0
 [0.1.0]: https://github.com/bbuehrig/X32-personal-mix/tree/6975fed

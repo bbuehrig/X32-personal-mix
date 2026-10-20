@@ -8,14 +8,18 @@ In mix mode: **fullscreen submix mixer** — **each browser has its own session*
 
 ## Current status
 
+**v0.3.0** — Mixing Station–style faders/meters, optional sticky bus master, VU mode.
+
 - Automatic discovery (`/xinfo`) or fixed address via `-mixer`
 - Choose stereo buses (odd 1–15) — **independently per client**; bus list is re-read from the X32 on every pick
 - **PWA**: fullscreen/standalone (no browser chrome), install icons, service worker
 - Screen stays awake (Screen Wake Lock + iOS/HTTP fallback) for long-running use
-- Fullscreen submix with CodePen-style channel strips: dark metal fader, LED value, live level meters, mute **M**, pan (tap → full-width control); channel color as strip background
+- Fullscreen submix: CodePen-style strips, dB fader scale (+10…−60), LED in dB, live meters with peak hold, mute **M**, pan (tap → full-width); channel color as strip background
+- Optional **Master** strip (sticky right): bus output fader/pan/mute/meter while channels scroll
+- Optional **VU** meter ballistics; channel icons as white X32 PNGs
 - Live updates from the desk via `/xremote` (only sessions using the affected bus)
-- Channel levels from the X32 via `/meters/0` (live meter deflection)
-- Fader height adapts to the screen
+- Channel / bus levels from the X32 via `/meters/0`
+- Fader height adapts to the screen; iPhone portrait chrome sits below the notch
 
 ## Quick start
 
@@ -65,8 +69,8 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), Dagger **v0.21.10**)
 
 ```bash
 # After bumping VERSION + CHANGELOG (see CHANGELOG.md)
-git tag -a v0.2.0 -m "v0.2.0"
-git push origin v0.2.0
+git tag -a v0.3.0 -m "v0.3.0"
+git push origin v0.3.0
 ```
 
 ## Architecture
@@ -148,7 +152,8 @@ Fallback: Settings → Display & Brightness → **Auto-Lock → Never**.
 ## Notes
 
 - One X32, many independent submix sessions
-- Channel icons: full X32 set (indices 1–74) from [behringer-icons](https://github.com/mamarguerat/behringer-icons) BMPs (GPL-3), served as `/icons/{n}.png`
+- Channel icons: full X32 set (indices 1–74) as white PNGs from [behringer-icons](https://github.com/mamarguerat/behringer-icons) BMPs (GPL-3), served as `/icons/{n}.png`
+- Mixer bar toggles (persisted): **Master**, **VU**, **Awake**
 - No authentication (LAN)
 
 ## Changelog

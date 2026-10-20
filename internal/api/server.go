@@ -64,6 +64,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/level", s.handleLevel)
 	mux.HandleFunc("POST /api/pan", s.handlePan)
 	mux.HandleFunc("POST /api/mute", s.handleMute)
+	mux.HandleFunc("POST /api/bus-level", s.handleBusLevel)
+	mux.HandleFunc("POST /api/bus-pan", s.handleBusPan)
+	mux.HandleFunc("POST /api/bus-mute", s.handleBusMute)
 	mux.HandleFunc("GET /ws", s.handleWS)
 	fileServer := http.FileServer(http.FS(s.WebFS))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -254,6 +257,119 @@ func (s *Server) handleMute(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(`{"ok":true}`))
 }
 
+type busLevelRequest struct {
+	Level float32 `json:"level"`
+}
+
+func (s *Server) handleBusLevel(w http.ResponseWriter, r *http.Request) {
+	id := s.sessionID(r)
+	var req busLevelRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+	bus, ok := s.Hub.SessionBus(id)
+	if !ok {
+		http.Error(w, `{"error":"no submix selected"}`, http.StatusConflict)
+		return
+	}
+	ip, port, ok := s.Hub.MixerAddr()
+	if !ok {
+		http.Error(w, `{"error":"mixer offline"}`, http.StatusConflict)
+		return
+	}
+	if err := x32.SetBusFader(s.OSC, ip, port, bus, req.Level); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusBadGateway)
+		return
+	}
+	level := clamp01(req.Level)
+	s.Hub.ApplyBusMasterUpdate(bus, func(m *hub.BusMaster) bool {
+		if m.Level == level {
+			return false
+		}
+		m.Level = level
+		return true
+	})
+	w.Header().Set(sessionHeader, id)
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write([]byte(`{"ok":true}`))
+}
+
+type busPanRequest struct {
+	Pan float32 `json:"pan"`
+}
+
+func (s *Server) handleBusPan(w http.ResponseWriter, r *http.Request) {
+	id := s.sessionID(r)
+	var req busPanRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+	bus, ok := s.Hub.SessionBus(id)
+	if !ok {
+		http.Error(w, `{"error":"no submix selected"}`, http.StatusConflict)
+		return
+	}
+	ip, port, ok := s.Hub.MixerAddr()
+	if !ok {
+		http.Error(w, `{"error":"mixer offline"}`, http.StatusConflict)
+		return
+	}
+	if err := x32.SetBusPan(s.OSC, ip, port, bus, req.Pan); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusBadGateway)
+		return
+	}
+	pan := clamp01(req.Pan)
+	s.Hub.ApplyBusMasterUpdate(bus, func(m *hub.BusMaster) bool {
+		if m.Pan == pan {
+			return false
+		}
+		m.Pan = pan
+		return true
+	})
+	w.Header().Set(sessionHeader, id)
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write([]byte(`{"ok":true}`))
+}
+
+type busMuteRequest struct {
+	On bool `json:"on"`
+}
+
+func (s *Server) handleBusMute(w http.ResponseWriter, r *http.Request) {
+	id := s.sessionID(r)
+	var req busMuteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+	bus, ok := s.Hub.SessionBus(id)
+	if !ok {
+		http.Error(w, `{"error":"no submix selected"}`, http.StatusConflict)
+		return
+	}
+	ip, port, ok := s.Hub.MixerAddr()
+	if !ok {
+		http.Error(w, `{"error":"mixer offline"}`, http.StatusConflict)
+		return
+	}
+	if err := x32.SetBusOn(s.OSC, ip, port, bus, req.On); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusBadGateway)
+		return
+	}
+	s.Hub.ApplyBusMasterUpdate(bus, func(m *hub.BusMaster) bool {
+		if m.On == req.On {
+			return false
+		}
+		m.On = req.On
+		return true
+	})
+	w.Header().Set(sessionHeader, id)
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write([]byte(`{"ok":true}`))
+}
+
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -287,14 +403,47 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleOSCUpdate(msg osc.Message) {
 	if levels, ok := x32.ParseMeters0(msg); ok {
-		if len(levels) > x32.ChannelCount {
-			levels = levels[:x32.ChannelCount]
-		}
 		s.Hub.BroadcastMeters(levels)
 		return
 	}
 	upd, ok := x32.ParseSubmixUpdate(msg)
 	if !ok {
+		return
+	}
+	if upd.Channel == 0 {
+		s.Hub.ApplyBusMasterUpdate(upd.Bus, func(m *hub.BusMaster) bool {
+			switch upd.Kind {
+			case "level":
+				if m.Level == upd.Level {
+					return false
+				}
+				m.Level = upd.Level
+			case "pan":
+				if m.Pan == upd.Pan {
+					return false
+				}
+				m.Pan = upd.Pan
+			case "on":
+				if m.On == upd.On {
+					return false
+				}
+				m.On = upd.On
+			case "name":
+				if m.Name == upd.Name {
+					return false
+				}
+				m.Name = upd.Name
+			case "color":
+				if m.Color == upd.Color {
+					return false
+				}
+				m.Color = upd.Color
+				m.ColorCSS = x32.ColorCSS(upd.Color)
+			default:
+				return false
+			}
+			return true
+		})
 		return
 	}
 	s.Hub.ApplyOSCUpdate(upd.Bus, upd.Channel, upd.Kind, func(ch *hub.Channel) bool {
@@ -422,13 +571,13 @@ func (s *Server) refreshBusList() error {
 // refreshBusesForPick reloads bus names when a session opens the bus picker.
 func (s *Server) refreshBusesForPick(sessionID string) {
 	if view := s.Hub.View(sessionID); view.Phase == "connected" {
-		s.Hub.SetSessionView(sessionID, "connected", "Loading buses…", 0, "", nil)
+		s.Hub.SetSessionView(sessionID, "connected", "Loading buses…", 0, "", nil, nil)
 	}
 	if err := s.refreshBusList(); err != nil {
 		log.Printf("refresh buses: %v", err)
 	}
 	if view := s.Hub.View(sessionID); view.Phase == "connected" {
-		s.Hub.SetSessionView(sessionID, "connected", "Choose a bus", 0, "", nil)
+		s.Hub.SetSessionView(sessionID, "connected", "Choose a bus", 0, "", nil, nil)
 	}
 }
 
@@ -451,26 +600,31 @@ func (s *Server) SelectBus(sessionID string, bus int) {
 		return
 	}
 
-	s.Hub.SetSessionView(sessionID, "connected", "Loading submix…", bus, busName, nil)
+	s.Hub.SetSessionView(sessionID, "connected", "Loading submix…", bus, busName, nil, nil)
 
 	channels, err := x32.FetchSubmix(s.OSC, ip, port, bus, 400*time.Millisecond)
 	if err != nil {
-		s.Hub.SetSessionView(sessionID, "connected", "Submix failed", 0, "", nil)
+		s.Hub.SetSessionView(sessionID, "connected", "Submix failed", 0, "", nil, nil)
+		return
+	}
+	master, err := x32.FetchBusMaster(s.OSC, ip, port, bus, busName, 400*time.Millisecond)
+	if err != nil {
+		s.Hub.SetSessionView(sessionID, "connected", "Submix failed", 0, "", nil, nil)
 		return
 	}
 
-	s.Hub.SetSessionView(sessionID, "mixing", busName, bus, busName, toHubChannels(channels))
+	s.Hub.SetSessionView(sessionID, "mixing", busName, bus, busName, toHubChannels(channels), toHubBusMaster(master))
 }
 
 func toHubChannels(channels []x32.Channel) []hub.Channel {
 	hubCh := make([]hub.Channel, len(channels))
 	for i, c := range channels {
 		hubCh[i] = hub.Channel{
-			Number:    c.Number,
-			Name:      c.Name,
-			Level:     c.Level,
-			Pan:       c.Pan,
-			On:        c.On,
+			Number:   c.Number,
+			Name:     c.Name,
+			Level:    c.Level,
+			Pan:      c.Pan,
+			On:       c.On,
 			Icon:     c.Icon,
 			IconSrc:  c.IconSrc,
 			Color:    c.Color,
@@ -478,6 +632,21 @@ func toHubChannels(channels []x32.Channel) []hub.Channel {
 		}
 	}
 	return hubCh
+}
+
+func toHubBusMaster(m *x32.BusMaster) *hub.BusMaster {
+	if m == nil {
+		return nil
+	}
+	return &hub.BusMaster{
+		Number:   m.Number,
+		Name:     m.Name,
+		Level:    m.Level,
+		Pan:      m.Pan,
+		On:       m.On,
+		Color:    m.Color,
+		ColorCSS: m.ColorCSS,
+	}
 }
 
 func (s *Server) startLiveOSC(host string, port int) {
@@ -492,7 +661,7 @@ func (s *Server) startLiveOSC(host string, port int) {
 	s.remoteStop = stop
 	s.remoteMu.Unlock()
 	go x32.StartXremote(s.OSC, addr, 8*time.Second, stop)
-	go x32.StartMeters(s.OSC, addr, 8*time.Second, 2, stop)
+	go x32.StartMeters(s.OSC, addr, 8*time.Second, 1, stop) // timeFactor 1 ≈ 50ms meter updates
 }
 
 func (s *Server) stopLiveOSC() {

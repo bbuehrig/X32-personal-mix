@@ -48,11 +48,16 @@
       <h1 id="bus-title">Submix</h1>
       <div class="mixer-bar-right">
         <button type="button" id="help-open" class="btn btn-ghost help-btn" title="Help">?</button>
+        <button type="button" id="bus-master-toggle" class="btn btn-ghost bus-master-toggle-btn" title="Show bus master fader" aria-pressed="false">Master off</button>
+        <button type="button" id="meter-ballistics" class="btn btn-ghost meter-ballistics-btn" title="Meter response: fast or slow (VU)" aria-pressed="false">VU off</button>
         <button type="button" id="stay-awake" class="btn btn-ghost stay-awake-btn" title="Keep screen awake" aria-pressed="false">Awake</button>
         <span id="live-dot" class="live-dot is-offline" title="Offline" aria-label="Offline"></span>
       </div>
     </header>
-    <div id="mixer" class="mixer" role="group" aria-label="Submix faders"></div>
+    <div class="mixer-body">
+      <div id="mixer" class="mixer" role="group" aria-label="Submix faders"></div>
+      <aside id="bus-master" class="bus-master" hidden aria-label="Bus master"></aside>
+    </div>
   </div>
 
   <div id="help-sheet" class="help-sheet" hidden>

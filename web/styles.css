@@ -28,6 +28,9 @@ html, body {
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
 .overlay {
@@ -258,9 +261,25 @@ html, body {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 0.5rem;
+  /* Round safe-area to whole pixels — fractional inset blurs text on iOS */
   padding: max(0.4rem, env(safe-area-inset-top, 0px)) 0.65rem 0.4rem;
+  padding-top: round(nearest, max(0.4rem, env(safe-area-inset-top, 0px)), 1px);
   background: #0e1218;
   border-bottom: 1px solid #222933;
+  /* Own layer at 1:1 — avoids Safari soft compositing of the chrome */
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Phone portrait: drop the button bar (and mixer below it) further under the notch */
+@media (orientation: portrait) and (max-width: 480px) {
+  .mixer-bar {
+    padding-top: round(
+      nearest,
+      max(0.4rem, env(safe-area-inset-top, 0px)) + 0.85rem,
+      1px
+    );
+  }
 }
 
 .mixer-bar-right {
@@ -269,16 +288,54 @@ html, body {
   gap: 0.45rem;
 }
 
-.stay-awake-btn.on {
+.stay-awake-btn.on,
+.meter-ballistics-btn.on,
+.bus-master-toggle-btn.on {
   border-color: #3ecf8e;
   color: #3ecf8e;
 }
 
+.mixer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.bus-master {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  padding: 0.35rem 0.4rem max(0.45rem, env(safe-area-inset-bottom, 0px)) 0.35rem;
+  border-left: 1px solid #2a3340;
+  background: #12161c;
+  z-index: 2;
+  box-shadow: -6px 0 12px rgba(0, 0, 0, 0.35);
+}
+
+.bus-master[hidden] {
+  display: none !important;
+}
+
+.bus-master .strip {
+  scroll-snap-align: none;
+}
+
+.bus-master .strip.is-master {
+  outline: 1px solid rgba(62, 207, 142, 0.35);
+}
+
+.bus-master .strip-num {
+  color: #3ecf8e;
+  font-weight: 800;
+}
+
 .mixer-bar h1 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 15px; /* fixed px reads sharper than rem on Retina Safari */
   font-weight: 700;
-  letter-spacing: 0.02em;
+  line-height: 1.25;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -286,10 +343,12 @@ html, body {
 }
 
 .mixer-bar .btn-ghost {
-  min-height: 1.9rem;
-  padding: 0 0.65rem;
+  min-height: 30px;
+  padding: 0 0.55rem;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: 13px;
+  line-height: 1.2;
+  transform: translateZ(0);
 }
 
 .live-dot {
@@ -307,7 +366,8 @@ html, body {
 }
 
 .mixer {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
   display: flex;
   align-items: stretch;
@@ -359,11 +419,11 @@ html, body {
   width: 1.45rem;
   height: 1.45rem;
   display: block;
-  /* Desk SVGs are black strokes; invert for the dark strip chrome */
-  filter: invert(1);
+  /* Pre-baked white PNGs — no CSS filter (invert softens glyphs on iOS) */
   opacity: 0.92;
   pointer-events: none;
   user-select: none;
+  -webkit-user-drag: none;
 }
 
 .strip-icon.is-blank {
@@ -565,26 +625,55 @@ html, body {
 }
 
 .fader-meter-fill {
+  --meter: 0;
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 100%;
-  transform: scaleY(0);
-  transform-origin: bottom center;
-  background: linear-gradient(-180deg, #f40000 0%, #ec9500 10%, #bade09 18%, #429321 45%);
-  will-change: transform;
+  inset: 0;
+  /* Stops aligned to X32 fader law: +10=0%, 0=25%, −10=50%, −60≈94% from top */
+  background: linear-gradient(
+    180deg,
+    #7a0000 0%,
+    #d00000 8%,
+    #f06000 16%,
+    #e8b800 22%,
+    #d4c400 25%,
+    #8bc41a 32%,
+    #429321 50%,
+    #2d7a18 75%,
+    #246614 100%
+  );
+  clip-path: inset(calc((1 - var(--meter)) * 100%) 0 0 0);
+  will-change: clip-path;
   pointer-events: none;
 }
 
+.fader-meter-peak {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  margin-bottom: -1px;
+  background: #f5f5f5;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .vca-markers {
-  display: flex;
-  flex-flow: column nowrap;
-  justify-content: space-between;
+  position: relative;
+  flex: 1 1 auto;
   height: 100%;
+  min-width: 1.1rem;
   font-size: 0.45rem;
   line-height: 1;
   color: #808080;
+}
+
+.vca-marker {
+  position: absolute;
+  left: 0;
+  transform: translateY(-50%); /* bottom edge on tick → center glyph on mark */
+  white-space: nowrap;
   text-align: left;
 }
 

@@ -11,6 +11,9 @@
     changeBus: document.getElementById("change-bus"),
     stayAwake: document.getElementById("stay-awake"),
     stayAwakeBoot: document.getElementById("stay-awake-boot"),
+    meterBallistics: document.getElementById("meter-ballistics"),
+    busMasterToggle: document.getElementById("bus-master-toggle"),
+    busMaster: document.getElementById("bus-master"),
     helpSheet: document.getElementById("help-sheet"),
     helpBody: document.getElementById("help-body"),
     helpTitle: document.getElementById("help-title"),
@@ -28,10 +31,15 @@
 
   const SID_KEY = "x32mix_sid";
   const BUS_KEY = "x32mix_bus";
+  const MASTER_KEY = "x32mix_master";
+  const MASTER_CH = 0; // synthetic id for bus master strip
   let sessionId = localStorage.getItem(SID_KEY) || "";
   let lastPhase = "";
   let didAutoRestore = false;
   const strips = new Map();
+  let masterRefs = null;
+  let selectedBusNum = 0;
+  let masterVisible = localStorage.getItem(MASTER_KEY) === "1";
 
   // Side gutters for camera / Dynamic Island (phone landscape).
   // Must be on .mixer-view — horizontal padding on overflow-.mixer is ignored by WebKit.
@@ -262,16 +270,45 @@
     if (img.getAttribute("src") !== src) img.src = src;
   }
 
+  // X32/M32 OSC fader law (pseudo-log): 0 → −∞, 0.75 → 0 dB, 1 → +10 dB.
+  function levelToDb(f) {
+    const x = Number(f) || 0;
+    if (x <= 0) return -Infinity;
+    if (x >= 0.5) return x * 40 - 30;
+    if (x >= 0.25) return x * 80 - 50;
+    if (x >= 0.0625) return x * 160 - 70;
+    return x * 640 - 90;
+  }
+
+  function dbToLevel(db) {
+    if (!Number.isFinite(db) || db <= -90) return 0;
+    if (db < -60) return (db + 90) / 640;
+    if (db < -30) return (db + 70) / 160;
+    if (db < -10) return (db + 50) / 80;
+    if (db <= 10) return (db + 30) / 40;
+    return 1;
+  }
+
+  // Mixing Station–style X32 fader scale (top +10 … bottom −60).
+  const FADER_SCALE_DB = [10, 5, 0, -5, -10, -20, -30, -40, -50, -60];
+
   function formatLevel(v) {
-    if (v <= 0.001) return "-∞";
-    return String(Math.round(v * 100));
+    const db = levelToDb(v);
+    if (!Number.isFinite(db) || db <= -89.5) return "-∞";
+    const r = Math.round(db);
+    if (r > 0) return `+${r}`;
+    return String(r);
   }
 
   function setFaderLevel(refs, level) {
     const v = clamp01(Number(level) || 0);
     refs.level = v;
     refs.wrap.style.setProperty("--level", String(v));
-    refs.wrap.setAttribute("aria-valuenow", String(Math.round(v * 100)));
+    const db = levelToDb(v);
+    refs.wrap.setAttribute(
+      "aria-valuenow",
+      Number.isFinite(db) ? String(Math.round(db * 10) / 10) : "-inf"
+    );
     if (refs.value) refs.value.textContent = formatLevel(v);
   }
 
@@ -391,10 +428,192 @@
     }
   }
 
+  function buildStrip(ch, opts) {
+    const isMaster = !!(opts && opts.isMaster);
+    const channelId = isMaster ? MASTER_CH : ch.number;
+
+    const strip = document.createElement("div");
+    strip.className = "strip" + (isMaster ? " is-master" : "");
+
+    const head = document.createElement("div");
+    head.className = "strip-head";
+    const icon = document.createElement("div");
+    icon.className = "strip-icon";
+    const num = document.createElement("div");
+    num.className = "strip-num";
+    num.textContent = isMaster ? "M" : String(ch.number);
+    head.append(icon, num);
+    setStripIcon(icon, ch.iconSrc || ch.icon);
+
+    const pan = document.createElement("div");
+    pan.className = "pan";
+    pan.setAttribute("role", "slider");
+    pan.setAttribute("aria-label", `Pan ${ch.name || ch.number}`);
+    pan.setAttribute("aria-orientation", "horizontal");
+    pan.setAttribute("aria-valuemin", "0");
+    pan.setAttribute("aria-valuemax", "100");
+    pan.tabIndex = 0;
+    const panCenter = document.createElement("div");
+    panCenter.className = "pan-center";
+    panCenter.setAttribute("aria-hidden", "true");
+    const panThumb = document.createElement("div");
+    panThumb.className = "pan-thumb";
+    panThumb.setAttribute("aria-hidden", "true");
+    pan.append(panCenter, panThumb);
+
+    const mute = document.createElement("button");
+    mute.type = "button";
+    mute.className = "mute" + (ch.on ? "" : " muted");
+    mute.textContent = "M";
+    mute.setAttribute("aria-label", "Mute");
+    mute.addEventListener("click", () => {
+      const currentlyOn = !mute.classList.contains("muted");
+      if (isMaster) postJSON("/api/bus-mute", { on: !currentlyOn });
+      else postJSON("/api/mute", { channel: ch.number, on: !currentlyOn });
+    });
+
+    const valueWrap = document.createElement("div");
+    valueWrap.className = "slider-value";
+    const value = document.createElement("div");
+    value.className = "slider-value__wrap";
+    valueWrap.append(value);
+
+    const wrap = document.createElement("div");
+    wrap.className = "fader-wrap";
+    wrap.setAttribute("role", "slider");
+    wrap.setAttribute("aria-label", `Level ${ch.name || ch.number}`);
+    wrap.setAttribute("aria-orientation", "vertical");
+    wrap.setAttribute("aria-valuemin", "-90");
+    wrap.setAttribute("aria-valuemax", "10");
+    wrap.tabIndex = 0;
+
+    const faderCol = document.createElement("div");
+    faderCol.className = "fader-col";
+    const groove = document.createElement("div");
+    groove.className = "fader-groove";
+    const cap = document.createElement("div");
+    cap.className = "fader-cap";
+    faderCol.append(groove, cap);
+
+    const vca = document.createElement("div");
+    vca.className = "vca";
+    vca.setAttribute("aria-hidden", "true");
+    const meter = document.createElement("div");
+    meter.className = "fader-meter";
+    const meterFill = document.createElement("div");
+    meterFill.className = "fader-meter-fill";
+    const meterPeakEl = document.createElement("div");
+    meterPeakEl.className = "fader-meter-peak";
+    meter.append(meterFill, meterPeakEl);
+    const markers = document.createElement("div");
+    markers.className = "vca-markers";
+    for (const db of FADER_SCALE_DB) {
+      const m = document.createElement("div");
+      m.className = "vca-marker";
+      m.textContent = db > 0 ? String(db) : db === 0 ? "0" : String(db);
+      m.style.bottom = `${dbToLevel(db) * 100}%`;
+      markers.append(m);
+    }
+    vca.append(meter, markers);
+
+    wrap.append(faderCol, vca);
+
+    const scribble = document.createElement("div");
+    scribble.className = "scribble";
+    const name = document.createElement("span");
+    name.className = "scribble-name";
+    name.textContent = ch.name || (isMaster ? "Master" : `Ch ${ch.number}`);
+    scribble.append(name);
+
+    strip.append(head, mute, pan, valueWrap, wrap, scribble);
+
+    const refs = {
+      strip,
+      wrap,
+      cap,
+      pan,
+      mute,
+      icon,
+      name,
+      scribble,
+      value,
+      meterFill,
+      meterPeak: meterPeakEl,
+      colorCss: ch.colorCss || "",
+      level: 0,
+      panValue: 0.5,
+      isMaster,
+    };
+    applyChannelColor(refs, refs.colorCss);
+    setFaderLevel(refs, ch.level ?? 0);
+    setPanValue(refs, ch.pan ?? 0.5);
+    bindFader(refs, channelId);
+    bindPan(refs, channelId);
+    return refs;
+  }
+
+  function syncMasterToggleBtn() {
+    const btn = el.busMasterToggle;
+    if (!btn) return;
+    btn.classList.toggle("on", masterVisible);
+    btn.setAttribute("aria-pressed", masterVisible ? "true" : "false");
+    btn.textContent = masterVisible ? "Master on" : "Master off";
+  }
+
+  function setMasterVisible(on) {
+    masterVisible = !!on;
+    localStorage.setItem(MASTER_KEY, masterVisible ? "1" : "0");
+    syncMasterToggleBtn();
+    updateBusMasterVisibility();
+  }
+
+  function updateBusMasterVisibility() {
+    if (!el.busMaster) return;
+    const showMaster = masterVisible && !!masterRefs;
+    show(el.busMaster, showMaster);
+  }
+
+  function clearBusMaster() {
+    masterRefs = null;
+    if (el.busMaster) {
+      el.busMaster.replaceChildren();
+      show(el.busMaster, false);
+    }
+  }
+
+  function renderBusMaster(master) {
+    if (!el.busMaster) return;
+    if (!master) {
+      clearBusMaster();
+      return;
+    }
+    const ch = {
+      number: master.number,
+      name: master.name || `Bus ${master.number}`,
+      level: master.level,
+      pan: master.pan,
+      on: master.on,
+      colorCss: master.colorCss,
+    };
+    if (!masterRefs || lastPhase !== "mixing") {
+      el.busMaster.replaceChildren();
+      masterRefs = buildStrip(ch, { isMaster: true });
+      el.busMaster.append(masterRefs.strip);
+    } else {
+      if (!isDragging(MASTER_CH, "level")) setFaderLevel(masterRefs, ch.level ?? 0);
+      if (!isDragging(MASTER_CH, "pan")) setPanValue(masterRefs, ch.pan ?? 0.5);
+      masterRefs.mute.classList.toggle("muted", !ch.on);
+      if (masterRefs.name) masterRefs.name.textContent = ch.name;
+      applyChannelColor(masterRefs, ch.colorCss || "");
+    }
+    updateBusMasterVisibility();
+  }
+
   function renderMixer(channels) {
     if (!channels) {
       strips.clear();
       el.mixer.replaceChildren();
+      clearBusMaster();
       return;
     }
 
@@ -407,119 +626,8 @@
       el.mixer.replaceChildren();
       strips.clear();
       for (const ch of channels) {
-        const strip = document.createElement("div");
-        strip.className = "strip";
-
-        const head = document.createElement("div");
-        head.className = "strip-head";
-        const icon = document.createElement("div");
-        icon.className = "strip-icon";
-        const num = document.createElement("div");
-        num.className = "strip-num";
-        num.textContent = String(ch.number);
-        head.append(icon, num);
-        setStripIcon(icon, ch.iconSrc || ch.icon);
-
-        const pan = document.createElement("div");
-        pan.className = "pan";
-        pan.setAttribute("role", "slider");
-        pan.setAttribute("aria-label", `Pan ${ch.name || ch.number}`);
-        pan.setAttribute("aria-orientation", "horizontal");
-        pan.setAttribute("aria-valuemin", "0");
-        pan.setAttribute("aria-valuemax", "100");
-        pan.tabIndex = 0;
-        const panCenter = document.createElement("div");
-        panCenter.className = "pan-center";
-        panCenter.setAttribute("aria-hidden", "true");
-        const panThumb = document.createElement("div");
-        panThumb.className = "pan-thumb";
-        panThumb.setAttribute("aria-hidden", "true");
-        pan.append(panCenter, panThumb);
-
-        const mute = document.createElement("button");
-        mute.type = "button";
-        mute.className = "mute" + (ch.on ? "" : " muted");
-        mute.textContent = "M";
-        mute.setAttribute("aria-label", "Mute");
-        mute.addEventListener("click", () => {
-          const currentlyOn = !mute.classList.contains("muted");
-          postJSON("/api/mute", { channel: ch.number, on: !currentlyOn });
-        });
-
-        const valueWrap = document.createElement("div");
-        valueWrap.className = "slider-value";
-        const value = document.createElement("div");
-        value.className = "slider-value__wrap";
-        valueWrap.append(value);
-
-        const wrap = document.createElement("div");
-        wrap.className = "fader-wrap";
-        wrap.setAttribute("role", "slider");
-        wrap.setAttribute("aria-label", `Level ${ch.name || ch.number}`);
-        wrap.setAttribute("aria-orientation", "vertical");
-        wrap.setAttribute("aria-valuemin", "0");
-        wrap.setAttribute("aria-valuemax", "100");
-        wrap.tabIndex = 0;
-
-        const faderCol = document.createElement("div");
-        faderCol.className = "fader-col";
-        const groove = document.createElement("div");
-        groove.className = "fader-groove";
-        const cap = document.createElement("div");
-        cap.className = "fader-cap";
-        faderCol.append(groove, cap);
-
-        const vca = document.createElement("div");
-        vca.className = "vca";
-        vca.setAttribute("aria-hidden", "true");
-        const meter = document.createElement("div");
-        meter.className = "fader-meter";
-        const meterFill = document.createElement("div");
-        meterFill.className = "fader-meter-fill";
-        meter.append(meterFill);
-        const markers = document.createElement("div");
-        markers.className = "vca-markers";
-        for (const label of [
-          "12", "6", "0", "3", "6", "9", "12", "15", "18", "21", "24", "30", "35", "40", "45", "50", "60",
-        ]) {
-          const m = document.createElement("div");
-          m.textContent = label;
-          markers.append(m);
-        }
-        vca.append(meter, markers);
-
-        wrap.append(faderCol, vca);
-
-        const scribble = document.createElement("div");
-        scribble.className = "scribble";
-        const name = document.createElement("span");
-        name.className = "scribble-name";
-        name.textContent = ch.name || `Ch ${ch.number}`;
-        scribble.append(name);
-
-        strip.append(head, mute, pan, valueWrap, wrap, scribble);
-        el.mixer.append(strip);
-
-        const refs = {
-          strip,
-          wrap,
-          cap,
-          pan,
-          mute,
-          icon,
-          name,
-          scribble,
-          value,
-          meterFill,
-          colorCss: ch.colorCss || "",
-          level: 0,
-          panValue: 0.5,
-        };
-        applyChannelColor(refs, refs.colorCss);
-        setFaderLevel(refs, ch.level ?? 0);
-        setPanValue(refs, ch.pan ?? 0.5);
-        bindFader(refs, ch.number);
-        bindPan(refs, ch.number);
+        const refs = buildStrip(ch, null);
+        el.mixer.append(refs.strip);
         strips.set(ch.number, refs);
       }
     } else {
@@ -573,25 +681,29 @@
 
   function queueLevel(channel, level) {
     queueThrottled(levelPending, levelTimers, channel, level, (ch, v) => {
-      postJSON("/api/level", { channel: ch, level: v });
+      if (ch === MASTER_CH) postJSON("/api/bus-level", { level: v });
+      else postJSON("/api/level", { channel: ch, level: v });
     });
   }
 
   function flushLevel(channel) {
     flushThrottled(levelPending, levelTimers, channel, (ch, v) => {
-      postJSON("/api/level", { channel: ch, level: v });
+      if (ch === MASTER_CH) postJSON("/api/bus-level", { level: v });
+      else postJSON("/api/level", { channel: ch, level: v });
     });
   }
 
   function queuePan(channel, pan) {
     queueThrottled(panPending, panTimers, channel, pan, (ch, v) => {
-      postJSON("/api/pan", { channel: ch, pan: v });
+      if (ch === MASTER_CH) postJSON("/api/bus-pan", { pan: v });
+      else postJSON("/api/pan", { channel: ch, pan: v });
     });
   }
 
   function flushPan(channel) {
     flushThrottled(panPending, panTimers, channel, (ch, v) => {
-      postJSON("/api/pan", { channel: ch, pan: v });
+      if (ch === MASTER_CH) postJSON("/api/bus-pan", { pan: v });
+      else postJSON("/api/pan", { channel: ch, pan: v });
     });
   }
 
@@ -621,11 +733,13 @@
     if (phase === "mixing") {
       didAutoRestore = true;
       if (s.selectedBus) rememberBus(s.selectedBus);
+      selectedBusNum = s.selectedBus || 0;
       show(el.boot, false);
       show(el.busPick, false);
       show(el.mixerView, true);
       el.busTitle.textContent = s.selectedBusName || `Bus ${s.selectedBus}`;
       renderMixer(s.channels || []);
+      renderBusMaster(s.busMaster || null);
     } else if (phase === "connected") {
       const bus = savedBus();
       const canRestore =
@@ -673,20 +787,122 @@
     lastPhase = phase;
   }
 
-  const meterPeaks = new Float32Array(32);
+  // X32 /meters: linear FS (1.0 = 0 dBFS). Bar height −60…0 dBFS → 0…1
+  // (colours on the track are separate and aligned to the fader scale marks).
+  function linearToMeterHeight(linear) {
+    if (!(linear > 1e-9)) return 0;
+    const db = 20 * Math.log10(linear);
+    const minDb = -60;
+    const maxDb = 0;
+    return Math.min(1, Math.max(0, (db - minDb) / (maxDb - minDb)));
+  }
 
-  function applyMeters(levels) {
-    if (!Array.isArray(levels) || !strips.size) return;
-    for (let i = 0; i < 32; i++) {
-      const raw = Number(levels[i]);
-      const v = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
-      if (v >= meterPeaks[i]) meterPeaks[i] = v;
-      else meterPeaks[i] *= 0.82;
-      const refs = strips.get(i + 1);
+  // Indices 0–31 = input channels; 32 = bus master (when shown).
+  const meterTarget = new Float32Array(33);
+  const meterShown = new Float32Array(33);
+  const meterPeak = new Float32Array(33);
+  const meterPeakUntil = new Float64Array(33);
+  const MASTER_METER_I = 32;
+  const METER_VU_KEY = "x32mix_meter_vu";
+  let meterVu = localStorage.getItem(METER_VU_KEY) === "1";
+
+  function meterBallistics() {
+    // Fast = peak-ish; VU = sluggish attack/release (classic needle feel).
+    if (meterVu) {
+      return { attack: 0.1, release: 0.055, peakHoldMs: 1800, peakFall: 0.018 };
+    }
+    return { attack: 1, release: 0.38, peakHoldMs: 1200, peakFall: 0.045 };
+  }
+
+  function syncMeterBallisticsBtn() {
+    const btn = el.meterBallistics;
+    if (!btn) return;
+    btn.classList.toggle("on", meterVu);
+    btn.setAttribute("aria-pressed", meterVu ? "true" : "false");
+    btn.textContent = meterVu ? "VU on" : "VU off";
+  }
+
+  function setMeterVu(on) {
+    meterVu = !!on;
+    localStorage.setItem(METER_VU_KEY, meterVu ? "1" : "0");
+    syncMeterBallisticsBtn();
+  }
+
+  let meterRaf = 0;
+
+  function paintMeters() {
+    meterRaf = 0;
+    const now = performance.now();
+    const bal = meterBallistics();
+    let cont = false;
+    for (let i = 0; i < 33; i++) {
+      const t = meterTarget[i];
+      let s = meterShown[i];
+      if (t >= s) {
+        s += (t - s) * bal.attack;
+        if (bal.attack >= 0.999) s = t;
+      } else {
+        s += (t - s) * bal.release;
+        if (s < 0.001) s = 0;
+      }
+      meterShown[i] = s;
+      if (Math.abs(t - s) > 0.0008) cont = true;
+
+      let pk = meterPeak[i];
+      if (s >= pk) {
+        pk = s;
+        meterPeakUntil[i] = now + bal.peakHoldMs;
+      } else if (now >= meterPeakUntil[i]) {
+        // After hold: fall toward the current meter (catches the next peak on the way).
+        pk -= bal.peakFall;
+        if (pk < s) pk = s;
+        if (pk < 0.001) pk = 0;
+        cont = true;
+      } else {
+        cont = true; // still holding
+      }
+      meterPeak[i] = pk;
+
+      const refs = i === MASTER_METER_I ? masterRefs : strips.get(i + 1);
       if (refs && refs.meterFill) {
-        refs.meterFill.style.transform = `scaleY(${meterPeaks[i].toFixed(3)})`;
+        refs.meterFill.style.setProperty("--meter", s.toFixed(3));
+      }
+      if (refs && refs.meterPeak) {
+        refs.meterPeak.style.bottom = `${pk * 100}%`;
+        refs.meterPeak.style.opacity = pk > 0.004 ? "1" : "0";
       }
     }
+    if (cont) meterRaf = requestAnimationFrame(paintMeters);
+  }
+
+  if (el.meterBallistics) {
+    el.meterBallistics.addEventListener("click", () => setMeterVu(!meterVu));
+    syncMeterBallisticsBtn();
+  }
+
+  if (el.busMasterToggle) {
+    el.busMasterToggle.addEventListener("click", () => setMasterVisible(!masterVisible));
+    syncMasterToggleBtn();
+  }
+
+  function applyMeters(levels) {
+    if (!Array.isArray(levels)) return;
+    if (!strips.size && !masterRefs) return;
+    for (let i = 0; i < 32; i++) {
+      const raw = Number(levels[i]);
+      meterTarget[i] = linearToMeterHeight(Number.isFinite(raw) ? Math.max(0, raw) : 0);
+    }
+    // /meters/0: 32 ch + 8 aux + 8 FX + 16 buses
+    if (masterRefs && selectedBusNum > 0) {
+      const bi = 32 + 8 + 8 + (selectedBusNum - 1);
+      if (bi < levels.length) {
+        const raw = Number(levels[bi]);
+        meterTarget[MASTER_METER_I] = linearToMeterHeight(
+          Number.isFinite(raw) ? Math.max(0, raw) : 0
+        );
+      }
+    }
+    if (!meterRaf) meterRaf = requestAnimationFrame(paintMeters);
   }
 
   let wsReconnectTimer = null;

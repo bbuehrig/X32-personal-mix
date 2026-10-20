@@ -1,5 +1,5 @@
 /* Minimal service worker: installable PWA shell cache. */
-const CACHE = "x32-personal-mix-v15";
+const CACHE = "x32-personal-mix-v29";
 const SHELL = [
   "/",
   "/index.html",
