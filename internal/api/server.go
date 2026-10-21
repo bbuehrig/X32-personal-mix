@@ -74,6 +74,15 @@ func (s *Server) Handler() http.Handler {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		// PWA / apple-touch icons: avoid long browser caches so home-screen picks stay current.
+		path := r.URL.Path
+		if path == "/apple-touch-icon.png" || path == "/apple-touch-icon-v33.png" ||
+			path == "/icon-192.png" || path == "/icon-192-v33.png" ||
+			path == "/icon-512.png" || path == "/icon-512-v33.png" ||
+			path == "/favicon.svg" || path == "/favicon-16.png" || path == "/favicon-32.png" ||
+			path == "/manifest.json" || path == "/sw.js" {
+			w.Header().Set("Cache-Control", "no-cache")
+		}
 		fileServer.ServeHTTP(w, r)
 	})
 	return mux
@@ -411,6 +420,31 @@ func (s *Server) handleOSCUpdate(msg osc.Message) {
 		return
 	}
 	if upd.Channel == 0 {
+		switch upd.Kind {
+		case "name", "icon", "color":
+			s.Hub.PatchBusList(upd.Bus, func(b *hub.Bus) bool {
+				switch upd.Kind {
+				case "name":
+					if b.Name == upd.Name {
+						return false
+					}
+					b.Name = upd.Name
+				case "icon":
+					if b.Icon == upd.Icon {
+						return false
+					}
+					b.Icon = upd.Icon
+					b.IconSrc = x32.IconSrc(upd.Icon)
+				case "color":
+					if b.Color == upd.Color {
+						return false
+					}
+					b.Color = upd.Color
+					b.ColorCSS = x32.ColorCSS(upd.Color)
+				}
+				return true
+			})
+		}
 		s.Hub.ApplyBusMasterUpdate(upd.Bus, func(m *hub.BusMaster) bool {
 			switch upd.Kind {
 			case "level":
@@ -433,6 +467,12 @@ func (s *Server) handleOSCUpdate(msg osc.Message) {
 					return false
 				}
 				m.Name = upd.Name
+			case "icon":
+				if m.Icon == upd.Icon {
+					return false
+				}
+				m.Icon = upd.Icon
+				m.IconSrc = x32.IconSrc(upd.Icon)
 			case "color":
 				if m.Color == upd.Color {
 					return false
@@ -535,12 +575,8 @@ func (s *Server) applyMixer(m x32.Mixer) {
 		return
 	}
 
-	hubBuses := make([]hub.Bus, len(buses))
-	for i, b := range buses {
-		hubBuses[i] = hub.Bus{Number: b.Number, Name: b.Name}
-	}
 	s.startLiveOSC(m.IP, m.Port)
-	s.Hub.SetGlobal("ready", "Choose a bus", m.IP, m.Port, m.Name, m.Model, m.Firmware, hubBuses)
+	s.Hub.SetGlobal("ready", "Choose a bus", m.IP, m.Port, m.Name, m.Model, m.Firmware, toHubBuses(buses))
 	go s.restorePreferredBuses()
 }
 
@@ -560,11 +596,7 @@ func (s *Server) refreshBusList() error {
 	if err != nil {
 		return err
 	}
-	hubBuses := make([]hub.Bus, len(buses))
-	for i, b := range buses {
-		hubBuses[i] = hub.Bus{Number: b.Number, Name: b.Name}
-	}
-	s.Hub.SetBuses(hubBuses)
+	s.Hub.SetBuses(toHubBuses(buses))
 	return nil
 }
 
@@ -634,6 +666,21 @@ func toHubChannels(channels []x32.Channel) []hub.Channel {
 	return hubCh
 }
 
+func toHubBuses(buses []x32.Bus) []hub.Bus {
+	out := make([]hub.Bus, len(buses))
+	for i, b := range buses {
+		out[i] = hub.Bus{
+			Number:   b.Number,
+			Name:     b.Name,
+			Icon:     b.Icon,
+			IconSrc:  b.IconSrc,
+			Color:    b.Color,
+			ColorCSS: b.ColorCSS,
+		}
+	}
+	return out
+}
+
 func toHubBusMaster(m *x32.BusMaster) *hub.BusMaster {
 	if m == nil {
 		return nil
@@ -644,6 +691,8 @@ func toHubBusMaster(m *x32.BusMaster) *hub.BusMaster {
 		Level:    m.Level,
 		Pan:      m.Pan,
 		On:       m.On,
+		Icon:     m.Icon,
+		IconSrc:  m.IconSrc,
 		Color:    m.Color,
 		ColorCSS: m.ColorCSS,
 	}

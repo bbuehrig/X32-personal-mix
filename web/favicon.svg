@@ -1,49 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="X32 Personal Mix">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#262626"/>
-      <stop offset="100%" stop-color="#121212"/>
+      <stop offset="0%" stop-color="#2c2c2c"/>
+      <stop offset="100%" stop-color="#0e0e0e"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#c8c8c8"/>
+      <stop offset="100%" stop-color="#8a8a8a"/>
     </linearGradient>
     <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f4f5f7"/>
-      <stop offset="42%" stop-color="#c8ccd2"/>
-      <stop offset="58%" stop-color="#8e939c"/>
-      <stop offset="100%" stop-color="#dce0e6"/>
+      <stop offset="0%" stop-color="#f8f9fb"/>
+      <stop offset="40%" stop-color="#c6cad2"/>
+      <stop offset="55%" stop-color="#7e8490"/>
+      <stop offset="100%" stop-color="#e8eaee"/>
     </linearGradient>
-    <linearGradient id="meter" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0%" stop-color="#429321"/>
-      <stop offset="55%" stop-color="#bade09"/>
-      <stop offset="82%" stop-color="#ec9500"/>
-      <stop offset="100%" stop-color="#f40000"/>
-    </linearGradient>
-    <linearGradient id="xfill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#b0b0b0"/>
+    <linearGradient id="cup" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f4f4f4"/>
+      <stop offset="100%" stop-color="#9a9a9a"/>
     </linearGradient>
   </defs>
 
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
 
-  <!-- Bold X (left) -->
+  <!-- Headband -->
   <path
-    fill="url(#xfill)"
-    d="M72 96 L148 96 L208 196 L268 96 L344 96 L244 256 L344 416 L268 416 L208 316 L148 416 L72 416 L172 256 Z"/>
+    d="M98 256 C98 136 162 78 256 78 C350 78 414 136 414 256"
+    fill="none"
+    stroke="url(#metal)"
+    stroke-width="34"
+    stroke-linecap="round"/>
 
-  <!-- Fader strip (right, prominent) -->
-  <rect x="318" y="72" width="140" height="368" rx="22" fill="#0a0a0a"/>
-  <rect x="330" y="84" width="116" height="344" rx="16" fill="#1a1a1a"/>
+  <!-- Ear cups -->
+  <rect x="48" y="224" width="100" height="156" rx="36" fill="url(#cup)"/>
+  <rect x="66" y="246" width="64" height="112" rx="24" fill="#141414"/>
+  <rect x="364" y="224" width="100" height="156" rx="36" fill="url(#cup)"/>
+  <rect x="382" y="246" width="64" height="112" rx="24" fill="#141414"/>
 
-  <!-- Track -->
-  <rect x="372" y="108" width="28" height="296" rx="8" fill="#050505"/>
-  <rect x="380" y="116" width="12" height="280" rx="4" fill="#333"/>
+  <!-- Fader between cups -->
+  <rect x="188" y="156" width="136" height="292" rx="22" fill="#050505"/>
+  <rect x="200" y="168" width="112" height="268" rx="16" fill="#1a1a1a"/>
 
-  <!-- Metal fader cap -->
-  <rect x="348" y="220" width="76" height="100" rx="12" fill="url(#cap)"/>
-  <rect x="360" y="254" width="52" height="7" rx="2" fill="#2e2e2e"/>
-  <rect x="360" y="268" width="52" height="7" rx="2" fill="#2e2e2e"/>
-  <rect x="360" y="282" width="52" height="7" rx="2" fill="#2e2e2e"/>
+  <rect x="234" y="192" width="26" height="220" rx="7" fill="#030303"/>
+  <rect x="241" y="200" width="12" height="204" rx="4" fill="#404040"/>
+
+  <rect x="214" y="268" width="66" height="88" rx="12" fill="url(#cap)"/>
+  <rect x="226" y="296" width="42" height="7" rx="2" fill="#2a2a2a"/>
+  <rect x="226" y="312" width="42" height="7" rx="2" fill="#2a2a2a"/>
+  <rect x="226" y="328" width="42" height="7" rx="2" fill="#2a2a2a"/>
 
   <!-- LED meter -->
-  <rect x="418" y="120" width="18" height="272" rx="4" fill="#0d0d0d"/>
-  <rect x="421" y="168" width="12" height="216" rx="2" fill="url(#meter)"/>
+  <g transform="translate(286 196)">
+    <rect y="172" width="16" height="14" rx="3" fill="#3a9a1a"/>
+    <rect y="154" width="16" height="14" rx="3" fill="#52b018"/>
+    <rect y="136" width="16" height="14" rx="3" fill="#6eca14"/>
+    <rect y="118" width="16" height="14" rx="3" fill="#8ae410"/>
+    <rect y="100" width="16" height="14" rx="3" fill="#a8f00c"/>
+    <rect y="82" width="16" height="14" rx="3" fill="#c8e000"/>
+    <rect y="64" width="16" height="14" rx="3" fill="#e0c000"/>
+    <rect y="46" width="16" height="14" rx="3" fill="#f0a000"/>
+    <rect y="28" width="16" height="14" rx="3" fill="#f87000"/>
+    <rect y="10" width="16" height="14" rx="3" fill="#f44000"/>
+    <rect y="-8" width="16" height="14" rx="3" fill="#d00000"/>
+  </g>
+
+  <!-- X badge top-left (secondary, not dominating) -->
+  <circle cx="96" cy="96" r="54" fill="#141414"/>
+  <circle cx="96" cy="96" r="50" fill="none" stroke="#3a3a3a" stroke-width="4"/>
+  <path
+    fill="url(#metal)"
+    d="M64 62 L84 62 L96 84 L108 62 L128 62 L106 96 L128 130 L108 130 L96 108 L84 130 L64 130 L86 96 Z"/>
 </svg>

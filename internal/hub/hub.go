@@ -11,8 +11,12 @@ import (
 
 // Bus is a stereo mix-bus entry for the UI (odd bus number).
 type Bus struct {
-	Number int    `json:"number"`
-	Name   string `json:"name"`
+	Number   int    `json:"number"`
+	Name     string `json:"name"`
+	Icon     int    `json:"icon"`
+	IconSrc  string `json:"iconSrc"`
+	Color    int    `json:"color"`
+	ColorCSS string `json:"colorCss"`
 }
 
 // Channel is a submix send strip.
@@ -35,6 +39,8 @@ type BusMaster struct {
 	Level    float32 `json:"level"`
 	Pan      float32 `json:"pan"`
 	On       bool    `json:"on"`
+	Icon     int     `json:"icon"`
+	IconSrc  string  `json:"iconSrc"`
 	Color    int     `json:"color"`
 	ColorCSS string  `json:"colorCss"`
 }
@@ -212,6 +218,55 @@ func (h *Hub) SetGlobal(phase, message, ip string, port int, name, model, firmwa
 	h.mu.Unlock()
 	for _, v := range views {
 		h.push(v.id, v.status)
+	}
+}
+
+// stereoBusNumber maps a bus to the odd stereo-pair head used in the UI list.
+func stereoBusNumber(bus int) int {
+	if bus < 1 {
+		return 0
+	}
+	if bus%2 == 0 {
+		return bus - 1
+	}
+	return bus
+}
+
+// PatchBusList updates one stereo bus in the global list and notifies sessions.
+func (h *Hub) PatchBusList(bus int, apply func(*Bus) bool) {
+	n := stereoBusNumber(bus)
+	if n == 0 {
+		return
+	}
+	type push struct {
+		id     string
+		status Status
+	}
+	var out []push
+	h.mu.Lock()
+	changed := false
+	for i := range h.global.Buses {
+		if h.global.Buses[i].Number != n {
+			continue
+		}
+		changed = apply(&h.global.Buses[i])
+		if changed && h.global.Buses[i].Name != "" {
+			for _, sess := range h.sessions {
+				if sess.selectedBus == n {
+					sess.selectedBusName = h.global.Buses[i].Name
+				}
+			}
+		}
+		break
+	}
+	if changed {
+		for _, sess := range h.sessions {
+			out = append(out, push{id: sess.id, status: h.viewLocked(sess)})
+		}
+	}
+	h.mu.Unlock()
+	for _, p := range out {
+		h.push(p.id, p.status)
 	}
 }
 

@@ -14,11 +14,13 @@ type BusMaster struct {
 	Level    float32 `json:"level"`
 	Pan      float32 `json:"pan"`
 	On       bool    `json:"on"`
+	Icon     int     `json:"icon"`
+	IconSrc  string  `json:"iconSrc"`
 	Color    int     `json:"color"`
 	ColorCSS string  `json:"colorCss"`
 }
 
-// FetchBusMaster loads fader/mute/pan/color for mix bus n (1–16).
+// FetchBusMaster loads fader/mute/pan/icon/color for mix bus n (1–16).
 func FetchBusMaster(client *osc.Client, ip string, port, bus int, name string, perQuery time.Duration) (*BusMaster, error) {
 	addr, err := udpAddr(ip, port)
 	if err != nil {
@@ -31,7 +33,8 @@ func FetchBusMaster(client *osc.Client, ip string, port, bus int, name string, p
 	faderPath := fmt.Sprintf("/bus/%02d/mix/fader", bus)
 	onPath := fmt.Sprintf("/bus/%02d/mix/on", bus)
 	panPath := fmt.Sprintf("/bus/%02d/mix/pan", bus)
-	colorPath := fmt.Sprintf("/bus/%02d/config/color", bus)
+	iconPath := busIconPath(bus)
+	colorPath := busColorPath(bus)
 
 	faderMsg, err := client.Request(addr, faderPath, perQuery)
 	if err != nil {
@@ -45,6 +48,10 @@ func FetchBusMaster(client *osc.Client, ip string, port, bus int, name string, p
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", panPath, err)
 	}
+	iconMsg, err := client.Request(addr, iconPath, perQuery)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", iconPath, err)
+	}
 	colorMsg, err := client.Request(addr, colorPath, perQuery)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", colorPath, err)
@@ -53,6 +60,10 @@ func FetchBusMaster(client *osc.Client, ip string, port, bus int, name string, p
 	if name == "" {
 		name = fmt.Sprintf("Bus %d", bus)
 	}
+	icon := intArg(iconMsg, 0)
+	if icon < 1 {
+		icon = 1
+	}
 	color := intArg(colorMsg, 0)
 	return &BusMaster{
 		Number:   bus,
@@ -60,6 +71,8 @@ func FetchBusMaster(client *osc.Client, ip string, port, bus int, name string, p
 		Level:    floatArg(faderMsg, 0),
 		Pan:      floatArg(panMsg, 0),
 		On:       boolArg(onMsg, 0),
+		Icon:     icon,
+		IconSrc:  IconSrc(icon),
 		Color:    color,
 		ColorCSS: ColorCSS(color),
 	}, nil

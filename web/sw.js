@@ -1,5 +1,5 @@
 /* Minimal service worker: installable PWA shell cache. */
-const CACHE = "x32-personal-mix-v29";
+const CACHE = "x32-personal-mix-v34";
 const SHELL = [
   "/",
   "/index.html",
@@ -9,9 +9,9 @@ const SHELL = [
   "/favicon.svg",
   "/favicon-16.png",
   "/favicon-32.png",
-  "/apple-touch-icon.png",
-  "/icon-192.png",
-  "/icon-512.png",
+  "/apple-touch-icon-v33.png",
+  "/icon-192-v33.png",
+  "/icon-512-v33.png",
   "/wake-ios.mp4",
   "/wake-ios.webm",
 ];

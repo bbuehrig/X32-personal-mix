@@ -16,6 +16,7 @@ var (
 	reBusOn    = regexp.MustCompile(`^/bus/(\d{1,2})/mix/on$`)
 	reBusPan   = regexp.MustCompile(`^/bus/(\d{1,2})/mix/pan$`)
 	reBusName  = regexp.MustCompile(`^/bus/(\d{1,2})/config/name$`)
+	reBusIcon  = regexp.MustCompile(`^/bus/(\d{1,2})/config/icon$`)
 	reBusColor = regexp.MustCompile(`^/bus/(\d{1,2})/config/color$`)
 	reChName   = regexp.MustCompile(`^/ch/(\d{1,2})/config/name$`)
 	reChIcon   = regexp.MustCompile(`^/ch/(\d{1,2})/config/icon$`)
@@ -96,6 +97,18 @@ func ParseSubmixUpdate(msg osc.Message) (SubmixUpdate, bool) {
 			Bus:     atoi(m[1]),
 			Kind:    "name",
 			Name:    name,
+		}, true
+	}
+	if m := reBusIcon.FindStringSubmatch(msg.Address); m != nil {
+		icon := intArg(msg, 0)
+		if icon < 1 {
+			icon = 1
+		}
+		return SubmixUpdate{
+			Channel: 0,
+			Bus:     atoi(m[1]),
+			Kind:    "icon",
+			Icon:    icon,
 		}, true
 	}
 	if m := reBusColor.FindStringSubmatch(msg.Address); m != nil {

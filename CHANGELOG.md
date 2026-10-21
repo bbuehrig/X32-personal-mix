@@ -7,6 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-21
+
+### Added
+
+- Bus picker shows each stereo bus’s X32 **color** and **icon** (`/bus/XX/config/color|icon`); live updates via `/xremote`
+- Bus master strip shows the selected bus icon
+
+### Changed
+
+- App icon: **headphones** + center **fader**/LED meter + compact **X** badge
+- iOS home-screen icon uses versioned `apple-touch-icon-v33.png` (Safari does not use favicon/`manifest` icons the same way as Android)
+- Bus/channel strip colours use hex mixing instead of CSS `color-mix` (fixes missing bus colour on Android Chrome)
+
 ## [0.3.0] - 2026-10-20
 
 ### Added
@@ -80,7 +93,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - REST: `GET /api/status`, `POST /api/discover`
 - Configurable listen address via `ADDR`
 
-[Unreleased]: https://github.com/bbuehrig/X32-personal-mix/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/bbuehrig/X32-personal-mix/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/bbuehrig/X32-personal-mix/releases/tag/v0.4.0
 [0.3.0]: https://github.com/bbuehrig/X32-personal-mix/releases/tag/v0.3.0
 [0.2.0]: https://github.com/bbuehrig/X32-personal-mix/releases/tag/v0.2.0
 [0.1.0]: https://github.com/bbuehrig/X32-personal-mix/tree/6975fed

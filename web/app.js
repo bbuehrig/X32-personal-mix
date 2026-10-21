@@ -375,27 +375,42 @@
     wrap.addEventListener("pointercancel", onEnd);
   }
 
+  function parseHexColor(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  // Mix two hex colors (amount = weight of `color`). Avoids CSS color-mix for Android Chrome.
+  function mixHex(color, into, amount) {
+    const a = parseHexColor(color);
+    const b = parseHexColor(into) || { r: 26, g: 26, b: 26 };
+    if (!a) return into;
+    const t = Math.min(1, Math.max(0, amount));
+    const r = Math.round(a.r * t + b.r * (1 - t));
+    const g = Math.round(a.g * t + b.g * (1 - t));
+    const bl = Math.round(a.b * t + b.b * (1 - t));
+    return `#${((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1)}`;
+  }
+
+  function hexAlpha(hex, alpha) {
+    const c = parseHexColor(hex);
+    if (!c) return "";
+    return `rgba(${c.r},${c.g},${c.b},${alpha})`;
+  }
+
   function applyChannelColor(refs, css) {
     const color = css || "";
     refs.colorCss = color;
     // Darken channel color so labels stay readable on the strip.
-    const dark = color
-      ? `color-mix(in srgb, ${color} 38%, #1a1a1a 62%)`
-      : "";
+    const dark = color ? mixHex(color, "#1a1a1a", 0.38) : "";
     refs.strip.style.background = dark;
     refs.scribble.style.background = dark || "var(--scribble)";
   }
 
   function show(node, on) {
     node.hidden = !on;
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
   }
 
   function renderBuses(buses, loading) {
@@ -407,7 +422,24 @@
       btn.type = "button";
       btn.className = "bus-pick";
       btn.disabled = !!loading;
-      btn.innerHTML = `<span class="bus-num">${bus.number}</span><span class="bus-name">${escapeHtml(bus.name || `Bus ${bus.number}`)}</span>`;
+
+      const icon = document.createElement("span");
+      icon.className = "bus-icon";
+      setStripIcon(icon, bus.iconSrc || bus.icon);
+
+      const num = document.createElement("span");
+      num.className = "bus-num";
+      num.textContent = String(bus.number);
+
+      const name = document.createElement("span");
+      name.className = "bus-name";
+      name.textContent = bus.name || `Bus ${bus.number}`;
+
+      btn.append(icon, num, name);
+      if (bus.colorCss) {
+        btn.style.background = mixHex(bus.colorCss, "#1a1a1a", 0.38);
+        btn.style.borderColor = hexAlpha(bus.colorCss, 0.55);
+      }
       btn.addEventListener("click", () => selectBus(bus.number));
       li.append(btn);
       el.buses.append(li);
@@ -593,6 +625,8 @@
       level: master.level,
       pan: master.pan,
       on: master.on,
+      icon: master.icon,
+      iconSrc: master.iconSrc,
       colorCss: master.colorCss,
     };
     if (!masterRefs || lastPhase !== "mixing") {
@@ -604,6 +638,7 @@
       if (!isDragging(MASTER_CH, "pan")) setPanValue(masterRefs, ch.pan ?? 0.5);
       masterRefs.mute.classList.toggle("muted", !ch.on);
       if (masterRefs.name) masterRefs.name.textContent = ch.name;
+      setStripIcon(masterRefs.icon, ch.iconSrc || ch.icon);
       applyChannelColor(masterRefs, ch.colorCss || "");
     }
     updateBusMasterVisibility();

@@ -8,14 +8,14 @@ In mix mode: **fullscreen submix mixer** — **each browser has its own session*
 
 ## Current status
 
-**v0.3.0** — Mixing Station–style faders/meters, optional sticky bus master, VU mode.
+**v0.4.0** — Bus picker with desk color/icon; refreshed PWA icon (headphones + fader).
 
 - Automatic discovery (`/xinfo`) or fixed address via `-mixer`
-- Choose stereo buses (odd 1–15) — **independently per client**; bus list is re-read from the X32 on every pick
+- Choose stereo buses (odd 1–15) — **independently per client**; bus list is re-read from the X32 on every pick and shows each bus’s **color** and **icon**
 - **PWA**: fullscreen/standalone (no browser chrome), install icons, service worker
 - Screen stays awake (Screen Wake Lock + iOS/HTTP fallback) for long-running use
 - Fullscreen submix: CodePen-style strips, dB fader scale (+10…−60), LED in dB, live meters with peak hold, mute **M**, pan (tap → full-width); channel color as strip background
-- Optional **Master** strip (sticky right): bus output fader/pan/mute/meter while channels scroll
+- Optional **Master** strip (sticky right): bus output fader/pan/mute/meter/icon while channels scroll
 - Optional **VU** meter ballistics; channel icons as white X32 PNGs
 - Live updates from the desk via `/xremote` (only sessions using the affected bus)
 - Channel / bus levels from the X32 via `/meters/0`
@@ -69,8 +69,8 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), Dagger **v0.21.10**)
 
 ```bash
 # After bumping VERSION + CHANGELOG (see CHANGELOG.md)
-git tag -a v0.3.0 -m "v0.3.0"
-git push origin v0.3.0
+git tag -a v0.4.0 -m "v0.4.0"
+git push origin v0.4.0
 ```
 
 ## Architecture
@@ -117,7 +117,8 @@ Phases (per session view): `idle` → `searching` → `connected` → `mixing` (
 
 - `/xinfo`, `/xremote`
 - `/meters` → `/meters/0` (channel level blob)
-- `/bus/XX/config/name`
+- `/bus/XX/config/name|icon|color`
+- `/bus/XX/mix/fader|on|pan`
 - `/ch/XX/config/name|icon|color` (icon 1–74 → `/icons/{n}.png`)
 - `/ch/XX/mix/BB/level|on|pan`
 
@@ -146,6 +147,8 @@ Phases (per session view): `idle` → `searching` → `connected` → `mixing` (
 2. On iPhone open `https://192.168.x.x:8443` (or HTTP — redirected) → accept the certificate once (“Continue”).
 3. Share → “Add to Home Screen” → launch the app from there.
 4. Tap **Awake on** (Wake Lock).
+
+**Icons:** Android uses `manifest.json` (`icon-192-v33.png` / `icon-512-v33.png`). iOS uses `apple-touch-icon` in `index.html` (`apple-touch-icon-v33.png`) — not the favicon. If the home-screen icon is only a letter **X**, Safari often failed to load the PNG (e.g. self-signed cert) and fell back to the first letter of the title; trust the cert, open `/apple-touch-icon-v33.png` once, remove the old icon, then add again.
 
 Fallback: Settings → Display & Brightness → **Auto-Lock → Never**.
 
